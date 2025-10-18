@@ -1,0 +1,101 @@
+stages:
+  - test
+  - build
+
+variables:
+  DOCKER_DRIVER: overlay2
+  BACKEND_IMAGE: "$CI_REGISTRY_IMAGE/backend"
+  FRONTEND_IMAGE: "$CI_REGISTRY_IMAGE/frontend"
+
+unit_tests:
+  stage: test
+  image: denoland/deno:alpine
+  script:
+    - echo "Running Deno unit tests with coverage..."
+    - cd backend
+    - deno test tests/unit --coverage=coverage_authService
+    - deno coverage coverage_authService --lcov > coverage_authService.lcov
+  artifacts:
+    when: always
+    paths:
+      - backend/coverage_authService/
+      - backend/coverage_authService.lcov
+    expire_in: 7 days
+  only:
+    - branches
+    - main
+    - tags
+
+api_tests:
+  stage: test
+  image: denoland/deno:alpine
+  script:
+    - echo "Installing dependencies..."
+    - cd backend
+    - deno run --allow-net --allow-read main.ts & BACKEND_PID=$!
+    - echo "Waiting for backend to start..."
+    - sleep 30
+    - echo "Executing API tests..."
+    - deno test --allow-net --allow-read
+    - echo "Stopping backend..."
+    - kill $BACKEND_PID
+  only:
+    - branches
+    - main
+    - tags
+static_analysis:
+  stage: test
+  image: denoland/deno:alpine
+  needs:
+    - api_tests
+    - unit_tests
+  script:
+    - echo "Running static analysis backend..."
+    - cd backend
+    #- deno fmt --check
+    - deno lint
+    - cd .. 
+    - cd frontend
+    - echo "Running static analysis frontend..."
+    #- deno fmt --check
+    - deno lint
+  only:
+    - branches
+    - main
+    - tags
+
+build_backend:
+  stage: build
+  image: docker:27
+  needs:
+    - static_analysis
+  services:
+    - docker:dind
+  script:
+    - echo "Building backend docker images..."
+    #- docker build -t "epi-climanuvem-backend" ./backend
+    #- docker tag epi-climanuvem-backend:latest epi-climanuvem-backend:$CI_COMMIT_SHORT_SHA
+    # Opcional: subir al registry, para esto hay que configrar el usuario y token en los Secrets. Esto nos permite bajarnos la imagen desde otra máquina (e.g prouccion..)
+    #- echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" $CI_REGISTRY --password-stdin
+    #- docker push $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA
+  only:
+    - main
+    - tags
+
+build_frontend:
+  stage: build
+  image: docker:27
+  needs:
+    - static_analysis
+  services:
+    - docker:dind
+  script:
+    - echo "Building frontend docker image..."
+    #- docker build -t "epi-climanuvem-frontend" ./frontend
+    #- docker tag epi-climanuvem-frontend:latest epi-climanuvem-frontend:$CI_COMMIT_SHORT_SHA
+    # Opcional: subir al registry, para esto hay que configrar el usuario y token en los Secrets. Esto nos permite bajarnos la imagen desde otra máquina (e.g prouccion..)
+    #- echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" $CI_REGISTRY --password-stdin
+    #- docker push $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA
+  only:
+    - main
+    - tags

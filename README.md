@@ -1,5 +1,35 @@
 # EPI-DevorApp
 
+## Demo project
+
+### Description
+The demo project is composed by two components: 
+- The backend component that uses the Oak and Deno to create a login endpoint   `api/login`, which can be accesed from the frontend. The backend has unitary and integration test cases(available into the test folder) and is available in the URL: [http://localhost:8080](http://localhost:8080)
+- The frontend component that uses Oak to serve a simple and minimal page, that uses the endpoint made available in the backend. The frontend is available in the following URL:  [http://localhost:5173](http://localhost:5173)
+
+The repository has configured a Continuous Integration (CI) pipeline that builds, executes the test cases and a static analysis tool to detect problems/bugs. 
+
+### How to deploy
+
+The easiest way to deploy the project in local is using Docker. In the repository root, there's a docker compose file (`docker-compose.yml`) that allows the deployment with a single command
+
+```bash
+docker compose up --build
+```
+
+The project also can be deployed using Deno, place yourself in the root folder and execute:
+
+```bash
+cd backend
+deno run --allow-net --allow-read 
+```
+
+and into another terminal:
+
+```bash
+cd frontend
+deno run --allow-net --allow-env --allow-read main.ts 
+```
 
 
 ## Getting started
