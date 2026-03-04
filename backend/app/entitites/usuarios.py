@@ -1,12 +1,11 @@
-from sqlalchemy import Column, String
-from app.db.session import Base
+from pydantic import BaseModel
+from typing import Optional
 
-class Usuario(Base):
-    __tablename__ = "usuarios"
 
-    user_id = Column(String, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    password = Column(String, nullable=False)
-    nombre = Column(String, nullable=False)
-    apellidos = Column(String, nullable=False)
-    ubicacion = Column(String, nullable=True)
+class Usuario(BaseModel):
+    """Modelo de usuario en memoria (sin ORM — los datos viven en Firebase)."""
+    username: str      # nombre de usuario (guardado en Firestore)
+    email: str
+    nombre: str
+    apellidos: str
+    ubicacion: Optional[str] = None

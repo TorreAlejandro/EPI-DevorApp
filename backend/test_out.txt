@@ -1,2 +1,0 @@
-﻿URI: 'postgresql://postgres:postgres@localhost:5432/tfg_db'
-Error connecting:

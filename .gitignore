@@ -454,4 +454,8 @@ buck-out/
 .history
 .ionide
 
+# Firebase Service Account (credenciales privadas — NUNCA subir a git)
+firebase-service-account.json
+**/firebase-service-account.json
+
 # End of https://www.toptal.com/developers/gitignore/api/python,react,visualstudiocode,reactnative

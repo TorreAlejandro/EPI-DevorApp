@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 
-const Login: React.FC = () => {
+interface Props {
+    onSwitch: () => void;
+}
+
+const Login: React.FC<Props> = ({ onSwitch }) => {
     const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -8,6 +12,13 @@ const Login: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Evitar submit vacío
+        if (!identifier.trim() || !password) {
+            setMessage({ type: 'error', text: 'Rellene todos los campos' });
+            return;
+        }
+
         setLoading(true);
         setMessage(null);
 
@@ -25,7 +36,7 @@ const Login: React.FC = () => {
                 throw new Error(data.detail || 'Ocurrió un error al iniciar sesión');
             }
 
-            setMessage({ type: 'success', text: `¡Sesiada inición, ${data.user.nombre}!` });
+            setMessage({ type: 'success', text: `¡Bienvenido de nuevo, ${data.user.nombre}!` });
 
         } catch (error: any) {
             setMessage({ type: 'error', text: error.message });
@@ -35,11 +46,15 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="login-container">
-            <h2>Iniciar Sesión</h2>
-            <form onSubmit={handleSubmit} className="login-form">
+        <div className="auth-card">
+            <div className="auth-header">
+                <div className="auth-logo">🍴</div>
+                <h1>Iniciar sesión</h1>
+            </div>
+
+            <form onSubmit={handleSubmit} className="auth-form" noValidate>
                 <div className="form-group">
-                    <label htmlFor="identifier">Email o Usuario:</label>
+                    <label htmlFor="identifier">Email o usuario</label>
                     <input
                         id="identifier"
                         type="text"
@@ -51,10 +66,11 @@ const Login: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="password">Contraseña:</label>
+                    <label htmlFor="password">Contraseña</label>
                     <input
                         id="password"
                         type="password"
+                        placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -62,16 +78,23 @@ const Login: React.FC = () => {
                     />
                 </div>
 
-                <button type="submit" disabled={loading}>
-                    {loading ? 'Cargando...' : 'Entrar'}
+                <button
+                    type="submit"
+                    className={`btn-primary${loading ? ' loading' : ''}`}
+                    disabled={loading}
+                >
+                    {loading ? '' : 'Entrar'}
                 </button>
             </form>
 
             {message && (
-                <div className={`message ${message.type}`}>
-                    {message.text}
-                </div>
+                <div className={`message ${message.type}`}>{message.text}</div>
             )}
+
+            <div className="auth-footer">
+                ¿No tienes cuenta?{' '}
+                <button type="button" onClick={onSwitch}>Regístrate</button>
+            </div>
         </div>
     );
 };

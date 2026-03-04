@@ -3,10 +3,8 @@ from typing import Optional
 
 import jwt
 from fastapi import Cookie, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.db.session import get_db
 from app.entitites.usuarios import Usuario
 
 
@@ -22,8 +20,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 def get_current_user(
     access_token: Optional[str] = Cookie(default=None),
-    db: Session = Depends(get_db),
 ) -> Usuario:
+    """
+    Dependencia FastAPI: decodifica el JWT de la cookie y carga el usuario
+    desde Firebase Firestore.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No autenticado o token inválido",
@@ -31,7 +32,9 @@ def get_current_user(
     if access_token is None:
         raise credentials_exception
     try:
-        payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
@@ -43,7 +46,9 @@ def get_current_user(
     except jwt.InvalidTokenError:
         raise credentials_exception
 
-    user = db.query(Usuario).filter(Usuario.user_id == user_id).first()
+    from app.firebase.usuario_repo import get_usuario_by_uid
+
+    user = get_usuario_by_uid(user_id)
     if user is None:
         raise credentials_exception
     return user
