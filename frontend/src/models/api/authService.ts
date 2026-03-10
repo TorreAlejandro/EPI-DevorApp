@@ -32,5 +32,14 @@ export const authService = {
         }
 
         return data;
+    },
+
+    checkEmailVerification: async (email: string): Promise<boolean> => {
+        const response = await fetch(`${API_URL}/check-verification/${email}`);
+        if (!response.ok) {
+            return false;
+        }
+        const data = await response.json();
+        return data.verified;
     }
 };

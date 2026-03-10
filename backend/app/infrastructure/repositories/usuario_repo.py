@@ -37,6 +37,54 @@ def verify_password_and_get_uid(email: str, password: str) -> Optional[str]:
     except httpx.RequestError:
         return None
 
+def send_verification_email(email: str, password: str) -> bool:
+    """
+    Inicia sesión temporalmente para obtener un idToken y solicita el envío
+    del correo de verificación nativo de Firebase mediante la REST API.
+    """
+    get_firebase_app()
+    # 1. Obtener el idToken iniciando sesión
+    login_url = (
+        "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
+        f"?key={settings.FIREBASE_API_KEY}"
+    )
+    try:
+        print(f"DEBUG: Authenticating with Firebase REST API for {email}...")
+        login_resp = httpx.post(
+            login_url,
+            json={"email": email, "password": password, "returnSecureToken": True},
+            timeout=10.0,
+        )
+        print(f"DEBUG: Login response status = {login_resp.status_code}")
+        if login_resp.status_code != 200:
+            print(f"DEBUG: Login response body = {login_resp.text}")
+            return False
+        
+        id_token = login_resp.json().get("idToken")
+        if not id_token:
+            print("DEBUG: idToken was empty!")
+            return False
+
+        # 2. Solicitar el correo de verificación
+        print("DEBUG: Requesting verification email...")
+        verify_url = (
+            "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode"
+            f"?key={settings.FIREBASE_API_KEY}"
+        )
+        verify_resp = httpx.post(
+            verify_url,
+            json={"requestType": "VERIFY_EMAIL", "idToken": id_token},
+            timeout=10.0,
+        )
+        print(f"DEBUG: Verification response status = {verify_resp.status_code}")
+        if verify_resp.status_code != 200:
+            print(f"DEBUG: Verification response body = {verify_resp.text}")
+        return verify_resp.status_code == 200
+    except httpx.RequestError as e:
+        print(f"DEBUG: RequestError fetching Firebase API: {e}")
+        return False
+
+
 
 def get_usuario_by_uid(uid: str) -> Optional[Usuario]:
     """
@@ -54,7 +102,7 @@ def get_usuario_by_uid(uid: str) -> Optional[Usuario]:
     profile: dict = doc.to_dict() or {}
 
     return Usuario(
-        username=profile.get("username", uid),  # nombre de usuario legible
+        username=profile.get("username", uid),
         email=user_record.email or "",
         nombre=profile.get("nombre", ""),
         apellidos=profile.get("apellidos", ""),

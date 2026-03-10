@@ -56,3 +56,8 @@ def get_me(current_user: Usuario = Depends(get_current_user)):
         "nombre": current_user.nombre,
         "apellidos": current_user.apellidos,
     }
+
+@router.get("/check-verification/{email}")
+def check_verification(email: str):
+    is_verified = auth_service.check_email_verification(email)
+    return {"verified": is_verified}

@@ -4,11 +4,13 @@ from fastapi import HTTPException, status
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.models.entities.usuarios import Usuario
+from firebase_admin import auth as fb_auth
 from app.infrastructure.repositories.usuario_repo import (
     verify_password_and_get_uid,
     get_usuario_by_uid,
     get_uid_by_username,
     create_usuario,
+    send_verification_email,
 )
 from app.models.dtos.auth_dto import RegisterRequest
 
@@ -33,7 +35,7 @@ def login(identifier: str, password: str) -> tuple[Usuario, str]:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales incorrectas",
             )
-        from firebase_admin import auth as fb_auth
+
         try:
             user_record = fb_auth.get_user(uid)
             email = user_record.email
@@ -42,6 +44,16 @@ def login(identifier: str, password: str) -> tuple[Usuario, str]:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales incorrectas",
             )
+
+    try:
+        user_record = fb_auth.get_user_by_email(email)
+        if not user_record.email_verified:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email no verificado. Por favor, revisa tu bandeja de entrada.",
+            )
+    except fb_auth.UserNotFoundError:
+        pass
 
     uid = verify_password_and_get_uid(email, password)
     if uid is None:
@@ -89,4 +101,15 @@ def register(data: RegisterRequest) -> Usuario:
         apellidos=data.apellidos,
         ubicacion=data.ubicacion,
     )
+    
+    send_verification_email(data.email, data.password)
+    
     return user
+
+def check_email_verification(email: str) -> bool:
+    try:
+        user_record = fb_auth.get_user_by_email(email)
+        return user_record.email_verified
+    except fb_auth.UserNotFoundError:
+        return False
+

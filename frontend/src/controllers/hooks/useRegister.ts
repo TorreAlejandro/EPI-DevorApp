@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { authService } from '../../models/api/authService';
 
 export const useRegister = (onSuccessSwitchToLogin: () => void) => {
@@ -8,6 +8,17 @@ export const useRegister = (onSuccessSwitchToLogin: () => void) => {
     });
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [loading, setLoading] = useState(false);
+    const [isWaitingVerification, setIsWaitingVerification] = useState(false);
+    const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    useEffect(() => {
+        // Cleanup interval on unmount
+        return () => {
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+            }
+        };
+    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -34,14 +45,27 @@ export const useRegister = (onSuccessSwitchToLogin: () => void) => {
                 ubicacion: form.ubicacion.trim() || null,
             };
 
-            const data = await authService.register(cleanData);
+            await authService.register(cleanData);
 
             setMessage({
                 type: 'success',
-                text: `Cuenta creada correctamente. ¡Ya puedes iniciar sesión, ${data.user.nombre}!`,
+                text: 'Cuenta creada. Por favor, revisa tu bandeja de entrada y pulsa en el enlace para verificar tu correo.',
             });
+            setIsWaitingVerification(true);
 
-            setTimeout(() => onSuccessSwitchToLogin(), 2200);
+            pollingIntervalRef.current = setInterval(async () => {
+                const isVerified = await authService.checkEmailVerification(cleanData.email);
+                if (isVerified) {
+                    if (pollingIntervalRef.current) {
+                        clearInterval(pollingIntervalRef.current);
+                    }
+                    setMessage({
+                        type: 'success',
+                        text: `¡Correo verificado con éxito! Redirigiendo al login...`,
+                    });
+                    setTimeout(() => onSuccessSwitchToLogin(), 2000);
+                }
+            }, 5000);
 
         } catch (error: any) {
             setMessage({ type: 'error', text: error.message });
@@ -55,6 +79,7 @@ export const useRegister = (onSuccessSwitchToLogin: () => void) => {
         handleInputChange,
         message,
         loading,
+        isWaitingVerification,
         submitRegister
     };
 };

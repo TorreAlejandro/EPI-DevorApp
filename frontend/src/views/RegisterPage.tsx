@@ -8,8 +8,47 @@ interface Props {
 const RegisterPage: React.FC<Props> = ({ onSwitch }) => {
     const {
         form, handleInputChange,
-        message, loading, submitRegister
+        message, loading, isWaitingVerification, submitRegister
     } = useRegister(onSwitch);
+
+    if (isWaitingVerification) {
+        return (
+            <div className="auth-card">
+                <div className="auth-header" style={{ marginBottom: '1rem' }}>
+                    <div className="auth-logo">✉️</div>
+                    <h1>Verifica tu correo</h1>
+                </div>
+
+                <p style={{ textAlign: 'center', marginBottom: '2rem', color: '#666' }}>
+                    Hemos enviado un enlace de confirmación a <strong>{form.email}</strong>.
+                    <br /><br />
+                    Por favor, revisa tu bandeja de entrada (y la carpeta de spam) y haz clic en el enlace para continuar.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                    <div className="loading-spinner" style={{
+                        width: '40px',
+                        height: '40px',
+                        border: '3px solid #f3f3f3',
+                        borderTop: '3px solid var(--primary-color)',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                    }} />
+                    <p style={{ fontSize: '0.9rem', color: '#888' }}>Esperando confirmación...</p>
+                </div>
+
+                {message && (
+                    <div className={`message ${message.type}`} style={{ marginTop: '2rem' }}>{message.text}</div>
+                )}
+                <style>{`
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                `}</style>
+            </div>
+        );
+    }
 
     return (
         <div className="auth-card">
