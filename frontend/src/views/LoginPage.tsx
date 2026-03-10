@@ -1,18 +1,20 @@
 import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useLogin } from '../controllers/hooks/useLogin';
 
-interface Props {
-    onSwitch: () => void;
-    onLoginSuccess?: () => void;
-}
+const LoginPage: React.FC = () => {
+    const navigate = useNavigate();
 
-const LoginPage: React.FC<Props> = ({ onSwitch, onLoginSuccess }) => {
+    const handleLoginSuccess = () => {
+        navigate('/home');
+    };
+
     const {
         identifier, setIdentifier,
         password, setPassword,
         message, loading,
         submitLogin
-    } = useLogin(onLoginSuccess);
+    } = useLogin(handleLoginSuccess);
 
     return (
         <div className="auth-card">
@@ -62,7 +64,7 @@ const LoginPage: React.FC<Props> = ({ onSwitch, onLoginSuccess }) => {
 
             <div className="auth-footer">
                 ¿No tienes cuenta?{' '}
-                <button type="button" onClick={onSwitch}>Regístrate</button>
+                <Link to="/register">Regístrate</Link>
             </div>
         </div>
     );

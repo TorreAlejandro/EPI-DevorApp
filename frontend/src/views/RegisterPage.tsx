@@ -1,15 +1,18 @@
 import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useRegister } from '../controllers/hooks/useRegister';
 
-interface Props {
-    onSwitch: () => void;
-}
+const RegisterPage: React.FC = () => {
+    const navigate = useNavigate();
 
-const RegisterPage: React.FC<Props> = ({ onSwitch }) => {
+    const handleSwitchToLogin = () => {
+        navigate('/login');
+    };
+
     const {
         form, handleInputChange,
         message, loading, isWaitingVerification, submitRegister
-    } = useRegister(onSwitch);
+    } = useRegister(handleSwitchToLogin);
 
     if (isWaitingVerification) {
         return (
@@ -126,7 +129,7 @@ const RegisterPage: React.FC<Props> = ({ onSwitch }) => {
 
             <div className="auth-footer">
                 ¿Ya tienes cuenta?{' '}
-                <button type="button" onClick={onSwitch}>Inicia sesión</button>
+                <Link to="/login">Inicia sesión</Link>
             </div>
         </div>
     );
