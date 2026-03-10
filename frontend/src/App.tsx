@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import Login from './components/Login'
-import Register from './components/Register'
+import LoginPage from './views/LoginPage'
+import RegisterPage from './views/RegisterPage'
 import './App.css'
 
 type View = 'login' | 'register'
@@ -11,8 +11,8 @@ function App() {
   return (
     <div className="app-container">
       {view === 'login'
-        ? <Login onSwitch={() => setView('register')} />
-        : <Register onSwitch={() => setView('login')} />
+        ? <LoginPage onSwitch={() => setView('register')} />
+        : <RegisterPage onSwitch={() => setView('login')} />
       }
     </div>
   )

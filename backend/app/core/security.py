@@ -5,7 +5,8 @@ import jwt
 from fastapi import Cookie, Depends, HTTPException, status
 
 from app.core.config import settings
-from app.entitites.usuarios import Usuario
+from app.models.entities.usuarios import Usuario
+from app.infrastructure.repositories.usuario_repo import get_usuario_by_uid
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -45,8 +46,6 @@ def get_current_user(
         )
     except jwt.InvalidTokenError:
         raise credentials_exception
-
-    from app.firebase.usuario_repo import get_usuario_by_uid
 
     user = get_usuario_by_uid(user_id)
     if user is None:

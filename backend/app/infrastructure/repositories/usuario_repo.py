@@ -11,8 +11,8 @@ import httpx
 from firebase_admin import auth as fb_auth
 
 from app.core.config import settings
-from app.entitites.usuarios import Usuario
-from app.firebase.firebase_admin import get_firebase_app, get_firestore_client
+from app.models.entities.usuarios import Usuario
+from app.infrastructure.firebase.firebase_admin import get_firebase_app, get_firestore_client
 
 
 def verify_password_and_get_uid(email: str, password: str) -> Optional[str]:

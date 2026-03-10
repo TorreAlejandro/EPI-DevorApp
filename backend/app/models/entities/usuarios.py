@@ -3,8 +3,7 @@ from typing import Optional
 
 
 class Usuario(BaseModel):
-    """Modelo de usuario en memoria (sin ORM — los datos viven en Firebase)."""
-    username: str      # nombre de usuario (guardado en Firestore)
+    username: str
     email: str
     nombre: str
     apellidos: str

@@ -1,49 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useLogin } from '../controllers/hooks/useLogin';
 
 interface Props {
     onSwitch: () => void;
+    onLoginSuccess?: () => void;
 }
 
-const Login: React.FC<Props> = ({ onSwitch }) => {
-    const [identifier, setIdentifier] = useState('');
-    const [password, setPassword] = useState('');
-    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-    const [loading, setLoading] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        // Evitar submit vacío
-        if (!identifier.trim() || !password) {
-            setMessage({ type: 'error', text: 'Rellene todos los campos' });
-            return;
-        }
-
-        setLoading(true);
-        setMessage(null);
-
-        try {
-            const response = await fetch('http://localhost:8000/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ identifier: identifier.trim(), password }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.detail || 'Ocurrió un error al iniciar sesión');
-            }
-
-            setMessage({ type: 'success', text: `¡Bienvenido de nuevo, ${data.user.nombre}!` });
-
-        } catch (error: any) {
-            setMessage({ type: 'error', text: error.message });
-        } finally {
-            setLoading(false);
-        }
-    };
+const LoginPage: React.FC<Props> = ({ onSwitch, onLoginSuccess }) => {
+    const {
+        identifier, setIdentifier,
+        password, setPassword,
+        message, loading,
+        submitLogin
+    } = useLogin(onLoginSuccess);
 
     return (
         <div className="auth-card">
@@ -52,7 +21,7 @@ const Login: React.FC<Props> = ({ onSwitch }) => {
                 <h1>Iniciar sesión</h1>
             </div>
 
-            <form onSubmit={handleSubmit} className="auth-form" noValidate>
+            <form onSubmit={submitLogin} className="auth-form" noValidate>
                 <div className="form-group">
                     <label htmlFor="identifier">Email o usuario</label>
                     <input
@@ -99,4 +68,4 @@ const Login: React.FC<Props> = ({ onSwitch }) => {
     );
 };
 
-export default Login;
+export default LoginPage;
