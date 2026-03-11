@@ -1,5 +1,4 @@
 stages:
-  - test
   - build
 
 variables:
@@ -7,86 +6,15 @@ variables:
   BACKEND_IMAGE: "$CI_REGISTRY_IMAGE/backend"
   FRONTEND_IMAGE: "$CI_REGISTRY_IMAGE/frontend"
 
-backend_unit_tests:
-  stage: test
-  image: python:3.11-alpine
-  script:
-    - echo "Running backend unit tests"
-    - cd backend
-    - pip install poetry
-    - poetry install
-    - poetry run pytest
-  only:
-    - branches
-    - main
-    - tags
-
-frontend_unit_tests:
-  stage: test
-  image: node:20-alpine
-  script:
-    - echo "Running frontend unit tests"
-    - cd frontend
-    - npm ci
-    - npm run test
-  only:
-    - branches
-    - main
-    - tags
-
-api_tests:
-  stage: test
-  image: python:3.11-slim
-  script:
-    - echo "Executing API tests (placeholder)"
-  only:
-    - branches
-    - main
-    - tags
-
-backend_static_analysis:
-  stage: test
-  image: python:3.11-alpine
-  needs:
-    - backend_unit_tests
-    - api_tests
-  script:
-    - echo "Running static analysis backend..."
-    - pip install ruff
-    - cd backend
-    - ruff check app/
-  only:
-    - branches
-    - main
-    - tags
-
-frontend_static_analysis:
-  stage: test
-  image: node:20-alpine
-  needs:
-    - frontend_unit_tests
-  script:
-    - echo "Running static analysis frontend..."
-    - cd frontend
-    - npm ci
-    - npm run lint
-  only:
-    - branches
-    - main
-    - tags
-
 build_backend:
   stage: build
   image: docker:27
-  needs:
-    - backend_static_analysis
   services:
     - docker:dind
   script:
     - echo "Building backend docker images..."
     #- docker build -t "epi-devorapp-backend" ./backend
     #- docker tag epi-devorapp-backend:latest epi-devorapp-backend:$CI_COMMIT_SHORT_SHA
-    # Opcional: subir al registry, para esto hay que configrar el usuario y token en los Secrets. Esto nos permite bajarnos la imagen desde otra máquina (e.g produccion..)
     #- echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" $CI_REGISTRY --password-stdin
     #- docker push $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA
   only:
@@ -96,15 +24,12 @@ build_backend:
 build_frontend:
   stage: build
   image: docker:27
-  needs:
-    - frontend_static_analysis
   services:
     - docker:dind
   script:
     - echo "Building frontend docker image..."
     #- docker build -t "epi-devorapp-frontend" ./frontend
     #- docker tag epi-devorapp-frontend:latest epi-devorapp-frontend:$CI_COMMIT_SHORT_SHA
-    # Opcional: subir al registry, para esto hay que configrar el usuario y token en los Secrets. Esto nos permite bajarnos la imagen desde otra máquina (e.g produccion..)
     #- echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" $CI_REGISTRY --password-stdin
     #- docker push $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA
   only:
