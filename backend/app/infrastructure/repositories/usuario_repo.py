@@ -84,7 +84,24 @@ def send_verification_email(email: str, password: str) -> bool:
         print(f"DEBUG: RequestError fetching Firebase API: {e}")
         return False
 
-
+def send_password_reset_email(email: str) -> bool:
+    """
+    Envía un correo de recuperación de contraseña nativo de Firebase al usuario.
+    """
+    get_firebase_app()
+    url = (
+        "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode"
+        f"?key={settings.FIREBASE_API_KEY}"
+    )
+    try:
+        resp = httpx.post(
+            url,
+            json={"requestType": "PASSWORD_RESET", "email": email},
+            timeout=10.0,
+        )
+        return resp.status_code == 200
+    except httpx.RequestError:
+        return False
 
 def get_usuario_by_uid(uid: str) -> Optional[Usuario]:
     """

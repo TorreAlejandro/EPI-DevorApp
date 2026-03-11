@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Response, status, Depends
-from app.models.dtos.auth_dto import LoginRequest, RegisterRequest
+from app.models.dtos.auth_dto import LoginRequest, RegisterRequest, PasswordResetRequest
 from app.services import auth_service
 from app.core.config import settings
 from app.core.security import get_current_user
@@ -61,3 +61,8 @@ def get_me(current_user: Usuario = Depends(get_current_user)):
 def check_verification(email: str):
     is_verified = auth_service.check_email_verification(email)
     return {"verified": is_verified}
+
+@router.post("/password-reset")
+def password_reset(data: PasswordResetRequest):
+    auth_service.request_password_reset(data.email)
+    return {"message": "Si el correo está registrado, se enviará un enlace de recuperación."}

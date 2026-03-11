@@ -11,6 +11,8 @@ from app.infrastructure.repositories.usuario_repo import (
     get_uid_by_username,
     create_usuario,
     send_verification_email,
+    send_password_reset_email,
+    get_usuario_by_email,
 )
 from app.models.dtos.auth_dto import RegisterRequest
 
@@ -112,4 +114,10 @@ def check_email_verification(email: str) -> bool:
         return user_record.email_verified
     except fb_auth.UserNotFoundError:
         return False
+
+def request_password_reset(email: str) -> None:
+    # Verificamos si el usuario existe sin revelar al frontend si existe o no
+    user = get_usuario_by_email(email)
+    if user:
+        send_password_reset_email(email)
 

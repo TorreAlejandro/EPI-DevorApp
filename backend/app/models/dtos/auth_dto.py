@@ -11,3 +11,6 @@ class RegisterRequest(BaseModel):
     nombre: str
     apellidos: str
     ubicacion: str | None = None
+
+class PasswordResetRequest(BaseModel):
+    email: str

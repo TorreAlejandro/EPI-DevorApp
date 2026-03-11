@@ -58,6 +58,18 @@ export const authService = {
         return data;
     },
 
+    requestPasswordReset: async (email: string): Promise<void> => {
+        const response = await fetch(`${API_URL}/password-reset`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Ocurrió un error al solicitar el restablecimiento');
+        }
+    },
+
     checkEmailVerification: async (email: string): Promise<boolean> => {
         const response = await fetch(`${API_URL}/check-verification/${email}`);
         if (!response.ok) {
