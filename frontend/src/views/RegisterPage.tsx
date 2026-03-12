@@ -1,4 +1,5 @@
 import React from 'react';
+import Autocomplete from "react-google-autocomplete";
 import { useNavigate, Link } from 'react-router-dom';
 import { useRegister } from '../controllers/hooks/useRegister';
 
@@ -10,7 +11,7 @@ const RegisterPage: React.FC = () => {
     };
 
     const {
-        form, handleInputChange,
+        form, handleInputChange, setFieldValue,
         message, loading, isWaitingVerification, submitRegister
     } = useRegister(handleSwitchToLogin);
 
@@ -110,11 +111,26 @@ const RegisterPage: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="reg-ubicacion">Ubicación preferida <span style={{ opacity: 0.5 }}>(opcional)</span></label>
-                    <input
-                        id="reg-ubicacion" name="ubicacion" type="text"
-                        value={form.ubicacion} onChange={handleInputChange}
+                    <label htmlFor="reg-ubicacion">Ubicación preferida</label>
+                    <Autocomplete
+                        id="reg-ubicacion"
+                        apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
+                        onChange={() => {
+                            // Si el usuario escribe algo, invalidamos la selección anterior
+                            setFieldValue('ubicacion', '');
+                        }}
+                        onPlaceSelected={(place) => {
+                            if (place?.formatted_address) {
+                                setFieldValue("ubicacion", place.formatted_address);
+                            }
+                        }}
+                        options={{
+                            types: ["(cities)"],
+                        }}
+                        className="form-control"
+                        placeholder="Escribe una ciudad"
                         disabled={loading}
+                        defaultValue={form.ubicacion}
                     />
                 </div>
 

@@ -24,11 +24,20 @@ export const useRegister = (onSuccessSwitchToLogin: () => void) => {
         setForm(f => ({ ...f, [e.target.name]: e.target.value }));
     }
 
+    const setFieldValue = (name: string, value: string) => {
+        setForm(f => ({ ...f, [name]: value }));
+    }
+
     const submitRegister = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!form.email.trim() || !form.username.trim() || !form.password || !form.nombre.trim() || !form.apellidos.trim()) {
             setMessage({ type: 'error', text: 'Rellene todos los campos obligatorios' });
+            return;
+        }
+
+        if (!form.ubicacion.trim()) {
+            setMessage({ type: 'error', text: 'Debe seleccionar una ubicación válida de la lista' });
             return;
         }
 
@@ -42,7 +51,7 @@ export const useRegister = (onSuccessSwitchToLogin: () => void) => {
                 username: form.username.trim(),
                 nombre: form.nombre.trim(),
                 apellidos: form.apellidos.trim(),
-                ubicacion: form.ubicacion.trim() || null,
+                ubicacion: form.ubicacion.trim(),
             };
 
             await authService.register(cleanData);
@@ -77,6 +86,7 @@ export const useRegister = (onSuccessSwitchToLogin: () => void) => {
     return {
         form,
         handleInputChange,
+        setFieldValue,
         message,
         loading,
         isWaitingVerification,

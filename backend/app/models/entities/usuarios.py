@@ -7,4 +7,4 @@ class Usuario(BaseModel):
     email: str
     nombre: str
     apellidos: str
-    ubicacion: Optional[str] = None
+    ubicacion: str

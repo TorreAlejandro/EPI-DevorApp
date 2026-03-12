@@ -30,6 +30,9 @@ const fillValidForm = () => {
     fireEvent.change(screen.getByLabelText('Apellidos'), {
         target: { name: 'apellidos', value: 'Usuario' },
     });
+    fireEvent.change(screen.getByLabelText('Ubicación preferida'), {
+        target: { name: 'ubicacion', value: 'Madrid' },
+    });
 };
 
 const renderRegisterPage = () =>
@@ -74,7 +77,7 @@ describe('RegisterPage', () => {
     });
 
     // ── 3. Validación: falta un campo obligatorio ────────────────────────────
-    it('debe mostrar error si falta un campo obligatorio (apellidos vacío)', async () => {
+    it('debe mostrar error genérico si falta un campo como apellidos', async () => {
         renderRegisterPage();
 
         fireEvent.change(screen.getByLabelText('Email'), {
@@ -99,7 +102,37 @@ describe('RegisterPage', () => {
         });
     });
 
-    // ── 4. Registro exitoso → pantalla de verificación ──────────────────────
+    // ── 4. Validación: ubicación vacía con mensaje específico ───────────────
+    it('debe mostrar error específico si falta la ubicación', async () => {
+        renderRegisterPage();
+
+        fireEvent.change(screen.getByLabelText('Email'), {
+            target: { name: 'email', value: 'nuevo@test.com' },
+        });
+        fireEvent.change(screen.getByLabelText('Nombre de usuario'), {
+            target: { name: 'username', value: 'nuevousuario' },
+        });
+        fireEvent.change(screen.getByLabelText(/Contraseña/i), {
+            target: { name: 'password', value: 'Segura123' },
+        });
+        fireEvent.change(screen.getByLabelText('Nombre'), {
+            target: { name: 'nombre', value: 'Nuevo' },
+        });
+        fireEvent.change(screen.getByLabelText('Apellidos'), {
+            target: { name: 'apellidos', value: 'Usuario' },
+        });
+        // Ubicación queda vacía
+
+        fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+        await waitFor(() => {
+            expect(
+                screen.getByText('Debe seleccionar una ubicación válida de la lista')
+            ).toBeInTheDocument();
+        });
+    });
+
+    // ── 5. Registro exitoso → pantalla de verificación ──────────────────────
     it('debe llamar a authService.register y mostrar la pantalla de verificación de email', async () => {
         (authService.register as ReturnType<typeof vi.fn>).mockResolvedValue({});
         // Que el polling no resuelva durante el test
@@ -116,7 +149,7 @@ describe('RegisterPage', () => {
                 username: 'nuevousuario',
                 nombre: 'Nuevo',
                 apellidos: 'Usuario',
-                ubicacion: null,
+                ubicacion: 'Madrid',
             });
         });
 
@@ -124,7 +157,6 @@ describe('RegisterPage', () => {
             expect(screen.getByText('Verifica tu correo')).toBeInTheDocument();
         });
 
-        // Muestra el email del usuario en la pantalla de espera
         expect(screen.getByText(/nuevo@test\.com/)).toBeInTheDocument();
     });
 
@@ -145,7 +177,7 @@ describe('RegisterPage', () => {
 
     // ── 6. El botón se deshabilita mientras carga ────────────────────────────
     it('debe deshabilitar el botón mientras se procesa el registro', async () => {
-        (authService.register as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+        (authService.register as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => { }));
 
         renderRegisterPage();
         fillValidForm();
@@ -155,24 +187,6 @@ describe('RegisterPage', () => {
 
         await waitFor(() => {
             expect(btn).toBeDisabled();
-        });
-    });
-
-    // ── 7. El campo ubicación es opcional ────────────────────────────────────
-    it('debe permitir el registro sin ubicación (campo opcional)', async () => {
-        (authService.register as ReturnType<typeof vi.fn>).mockResolvedValue({});
-        (authService.checkEmailVerification as ReturnType<typeof vi.fn>).mockResolvedValue(false);
-
-        renderRegisterPage();
-        fillValidForm();
-        // Ubicación se deja vacía intencionalmente
-
-        fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
-
-        await waitFor(() => {
-            expect(authService.register).toHaveBeenCalledWith(
-                expect.objectContaining({ ubicacion: null })
-            );
         });
     });
 });
