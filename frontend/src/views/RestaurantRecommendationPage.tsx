@@ -187,11 +187,10 @@ const RestaurantRecommendationPage: React.FC = () => {
                 if (countryCode) {
                     const symbol = getCurrencyForCountry(countryCode);
                     setCurrencySymbol(symbol);
-                    setPreferredLocation(ubicacion);
                 } else {
                     setCurrencySymbol('€');
-                    setPreferredLocation(ubicacion);
                 }
+                setPreferredLocation(ubicacion);
             } else {
                 setCurrencySymbol('€');
                 setPreferredLocation('');
@@ -199,6 +198,13 @@ const RestaurantRecommendationPage: React.FC = () => {
         } catch (error) {
             console.error("Error al conectar con FastAPI para obtener el perfil:", error);
             setCurrencySymbol('€');
+            // Intentar recuperar la ubicación aunque falle la geocodificación
+            try {
+                const userData = await authService.getMe();
+                if (userData.ubicacion) setPreferredLocation(userData.ubicacion);
+            } catch (e) {
+                console.error("Error definitivo al obtener ubicación:", e);
+            }
         }
     };
 
@@ -207,7 +213,7 @@ const RestaurantRecommendationPage: React.FC = () => {
             <div className="auth-card" style={{ maxWidth: '600px', width: '100%' }}>
                 <div className="auth-header">
                     <div className="auth-logo">🔍</div>
-                    <h1>Recomendar Restaurantes</h1>
+                    <h1>Recomendador de Restaurantes</h1>
                     <p>Encuentra tu próximo lugar favorito</p>
                 </div>
 
@@ -304,8 +310,9 @@ const RestaurantRecommendationPage: React.FC = () => {
                                         />
                                         Incluir sitios sin precio confirmado
                                     </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text)', marginTop: '0.5rem' }}>
+                                    <label htmlFor="open-now-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text)', marginTop: '0.5rem' }}>
                                         <input
+                                            id="open-now-checkbox"
                                             type="checkbox"
                                             checked={openNow}
                                             onChange={() => setOpenNow(!openNow)}
@@ -319,8 +326,9 @@ const RestaurantRecommendationPage: React.FC = () => {
                             <div className="form-group" style={{ marginBottom: '1.8rem' }}>
                                 <label style={{ marginBottom: '0.8rem', display: 'block' }}>Ubicación</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '0.5rem' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text)' }}>
+                                    <label htmlFor="preferred-location-radio" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text)' }}>
                                         <input
+                                            id="preferred-location-radio"
                                             type="radio"
                                             name="locationMode"
                                             checked={locationMode === 'preferred'}
@@ -333,8 +341,9 @@ const RestaurantRecommendationPage: React.FC = () => {
                                         Usar ubicación preferida
                                     </label>
 
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text)' }}>
+                                    <label htmlFor="custom-location-radio" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text)' }}>
                                         <input
+                                            id="custom-location-radio"
                                             type="radio"
                                             name="locationMode"
                                             checked={locationMode === 'custom'}
