@@ -26,22 +26,22 @@
     },
     {
         "id": "mexican_restaurant",
-        "label": "Mexicana",
+        "label": "Mexicano",
         "category": "Cocina"
     },
     {
         "id": "italian_restaurant",
-        "label": "Italiana",
+        "label": "Italiano",
         "category": "Cocina"
     },
     {
         "id": "chinese_restaurant",
-        "label": "China",
+        "label": "Chino",
         "category": "Cocina"
     },
     {
         "id": "japanese_restaurant",
-        "label": "Japonesa",
+        "label": "Japonés",
         "category": "Cocina"
     },
     {
@@ -60,23 +60,28 @@
         "category": "Cocina"
     },
     {
+        "id": "kebab_shop",
+        "label": "Kebab",
+        "category": "Cocina"
+    },
+    {
         "id": "seafood_restaurant",
         "label": "Mariscos",
         "category": "Cocina"
     },
     {
         "id": "spanish_restaurant",
-        "label": "Española",
+        "label": "Español",
         "category": "Cocina"
     },
     {
         "id": "vegetarian_restaurant",
-        "label": "Vegetariana",
+        "label": "Vegetariano",
         "category": "Dietas Especiales"
     },
     {
         "id": "vegan_restaurant",
-        "label": "Vegana",
+        "label": "Vegano",
         "category": "Dietas Especiales"
     }
 ]

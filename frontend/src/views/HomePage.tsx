@@ -15,6 +15,12 @@ const HomePage: React.FC = () => {
             >
                 Recomendar Restaurantes
             </button>
+            <button
+                onClick={() => navigate('/history')}
+                style={{ padding: '10px 20px', cursor: 'pointer', backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '5px' }}
+            >
+                Ver Historial
+            </button>
             <button onClick={submitLogout} disabled={loading} style={{ padding: '10px 20px', cursor: 'pointer' }}>
                 {loading ? 'Cerrando sesión...' : 'Cerrar Sesión'}
             </button>

@@ -3,6 +3,7 @@ import LoginPage from './views/LoginPage';
 import RegisterPage from './views/RegisterPage';
 import HomePage from './views/HomePage';
 import RestaurantRecommendationPage from './views/RestaurantRecommendationPage';
+import HistoryPage from './views/HistoryPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -21,6 +22,11 @@ function App() {
           <Route path="/recommend-restaurants" element={
             <ProtectedRoute>
               <RestaurantRecommendationPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/history" element={
+            <ProtectedRoute>
+              <HistoryPage />
             </ProtectedRoute>
           } />
           <Route path="*" element={<Navigate to="/login" replace />} />

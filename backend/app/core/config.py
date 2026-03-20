@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     # Google Maps
     GOOGLE_API_KEY: str = ""
 
+    # PostgreSQL (SQLAlchemy)
+    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/tfg_db"
+
     # JWT
     SECRET_KEY: str = os.getenv(
         "SECRET_KEY", "CAMBIA_ESTO_EN_PRODUCCION_usa_openssl_rand_hex_32"

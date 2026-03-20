@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Autocomplete from "react-google-autocomplete";
 import { authService } from '../models/api/authService';
 import { recommendationService } from '../models/api/recommendationService';
+import { historialService } from '../models/api/historialService';
 import tagsData from '../data/tags.json';
 
 interface Tag {
@@ -17,8 +18,6 @@ const PRICE_LEVELS = [
     { id: 'PRICE_LEVEL_EXPENSIVE', level: 3, label: 'Caro' },
     { id: 'PRICE_LEVEL_VERY_EXPENSIVE', level: 4, label: 'Exclusivo' }
 ];
-
-const UNSPECIFIED_PRICE_ID = 'PRICE_LEVEL_UNSPECIFIED';
 
 const getCurrencyForCountry = (countryCode: string): string => {
     const currencyMap: Record<string, string> = {
@@ -596,9 +595,16 @@ const RestaurantRecommendationPage: React.FC = () => {
 
                                             <div style={{ width: '100%' }}>
                                                 <button
-                                                    onClick={(e) => {
+                                                    onClick={async (e) => {
                                                         e.stopPropagation();
-                                                        alert(`Has seleccionado: ${place.name}`);
+                                                        try {
+                                                            await historialService.addToHistorial(place.id);
+                                                            alert(`¡Has seleccionado ${place.name}!\n\n¡Que disfrutes de una deliciosa comida! 🍽️`);
+                                                            navigate('/home');
+                                                        } catch (err: any) {
+                                                            console.error("Error saving to history:", err);
+                                                            alert("Error al guardar en el historial: " + err.message);
+                                                        }
                                                     }}
                                                     className="btn-primary"
                                                     style={{

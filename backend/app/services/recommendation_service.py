@@ -104,4 +104,23 @@ class RecommendationService:
         
         return f"https://places.googleapis.com/v1/{resource_name}/media?maxHeightPx=400&maxWidthPx=400&key={self.api_key}"
 
+    async def get_place_details(self, place_id: str) -> Dict[str, Any]:
+        """Obtiene detalles completos de un restaurante específico por su ID."""
+        url = f"https://places.googleapis.com/v1/places/{place_id}"
+        headers = {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": self.api_key,
+            "X-Goog-FieldMask": "id,displayName,formattedAddress,priceLevel,rating,userRatingCount,types,photos,googleMapsUri,websiteUri,regularOpeningHours,editorialSummary"
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers, timeout=10.0)
+            if response.status_code != 200:
+                print(f"Error fetching details for {place_id}: {response.text}")
+                return {}
+            
+            place = response.json()
+            formatted = self._format_results([place])
+            return formatted[0] if formatted else {}
+
 recommendation_service = RecommendationService()

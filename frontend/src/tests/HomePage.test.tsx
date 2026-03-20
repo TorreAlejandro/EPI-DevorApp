@@ -100,4 +100,17 @@ describe('HomePage (Cerrar Sesión)', () => {
             expect(btn).toHaveTextContent('Cerrando sesión...');
         });
     });
+
+    // ── 6. Botón "Ver Historial" presente ───────────────────────────────────
+    it('debe renderizar el botón "Ver Historial"', () => {
+        renderHomePage();
+        expect(screen.getByRole('button', { name: 'Ver Historial' })).toBeInTheDocument();
+    });
+
+    // ── 7. Navegación a /history al hacer clic en "Ver Historial" ───────────
+    it('debe navegar a /history al hacer clic en "Ver Historial"', () => {
+        renderHomePage();
+        fireEvent.click(screen.getByRole('button', { name: 'Ver Historial' }));
+        expect(mockNavigate).toHaveBeenCalledWith('/history');
+    });
 });

@@ -1,0 +1,54 @@
+const API_URL = 'http://localhost:8000/api';
+
+export interface HistorialEntry {
+    id: number;
+    user_id: string;
+    place_id: string;
+    fecha_acceso: string;
+}
+
+export const historialService = {
+    getHistorial: async (): Promise<HistorialEntry[]> => {
+        const response = await fetch(`${API_URL}/historial`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.detail || 'Error al obtener el historial');
+        }
+
+        return await response.json();
+    },
+
+    addToHistorial: async (placeId: string): Promise<HistorialEntry> => {
+        const response = await fetch(`${API_URL}/historial`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ place_id: placeId }),
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.detail || 'Error al añadir al historial');
+        }
+
+        return await response.json();
+    },
+
+    deleteFromHistorial: async (entryId: string): Promise<void> => {
+        const response = await fetch(`${API_URL}/historial/${entryId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.detail || 'Error al eliminar del historial');
+        }
+    }
+};
