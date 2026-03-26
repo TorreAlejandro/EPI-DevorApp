@@ -5,6 +5,7 @@ export interface RecommendationParams {
     prices: string[];
     include_unconfirmed_price: boolean;
     location: string;
+    sort_by?: string;
     page_token?: string;
     open_now?: boolean;
 }

@@ -7,6 +7,17 @@ class RecommendationService:
     def __init__(self):
         self.api_key = settings.GOOGLE_API_KEY
         self.base_url = "https://places.googleapis.com/v1/places:searchText"
+        self.geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
+
+    async def _geocode_location(self, location: str) -> tuple[float, float]:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{self.geocode_url}?address={location}&key={self.api_key}")
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("results"):
+                    loc = data["results"][0]["geometry"]["location"]
+                    return loc.get("lat"), loc.get("lng")
+        return None, None
 
     async def search_restaurants(self, request: RecommendationRequest) -> Dict[str, Any]:
         
@@ -22,7 +33,7 @@ class RecommendationService:
             "Content-Type": "application/json",
             "X-Goog-Api-Key": self.api_key,
             # Definimos los campos que queremos recibir
-            "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.priceLevel,places.rating,places.userRatingCount,places.types,places.photos,places.googleMapsUri,places.websiteUri,places.regularOpeningHours,places.editorialSummary,nextPageToken"
+            "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.priceLevel,places.rating,places.userRatingCount,places.types,places.photos,places.googleMapsUri,places.websiteUri,places.regularOpeningHours,places.editorialSummary,places.location,nextPageToken"
         }
         
         payload = {
@@ -58,16 +69,49 @@ class RecommendationService:
             
             formatted = self._format_results(places)
             
-            # Ordenar por media ponderada (Bayesian Rating)
-            umbral_m = 10
-            media_base_c = 3.5
-            
-            def calcular_peso(restaurante):
-                v = restaurante.get("user_ratings_total") or 0
-                r = restaurante.get("rating") or 0
-                return (v / (v + umbral_m)) * r + (umbral_m / (v + umbral_m)) * media_base_c
+            if getattr(request, 'sort_by', 'rating') == 'distance':
+                lat, lng = await self._geocode_location(request.location)
+                if lat is not None and lng is not None:
+                    import math
+                    def haversine(lat1, lon1, lat2, lon2):
+                        R = 6371.0 # Radius of earth in km
+                        dlat = math.radians(lat2 - lat1)
+                        dlon = math.radians(lon2 - lon1)
+                        a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+                        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                        return R * c
+                    
+                    def calcular_distancia(restaurante):
+                        r_lat = restaurante.get("latitude")
+                        r_lng = restaurante.get("longitude")
+                        if r_lat is None or r_lng is None:
+                            return float('inf')
+                        return haversine(lat, lng, r_lat, r_lng)
+                    
+                    formatted.sort(key=calcular_distancia)
+                else:
+                    # Fallback to rating
+                    umbral_m = 10
+                    media_base_c = 3.5
+                    def calcular_peso(restaurante):
+                        v = restaurante.get("user_ratings_total") or 0
+                        r = restaurante.get("rating") or 0
+                        return (v / (v + umbral_m)) * r + (umbral_m / (v + umbral_m)) * media_base_c
+                    formatted.sort(key=calcular_peso, reverse=True)
+            elif getattr(request, 'sort_by', 'rating') == 'reviews':
+                # Ordenar por popularidad (número de reseñas)
+                formatted.sort(key=lambda r: r.get("user_ratings_total") or 0, reverse=True)
+            else:
+                # Ordenar por media ponderada (Bayesian Rating)
+                umbral_m = 10
+                media_base_c = 3.5
+                
+                def calcular_peso(restaurante):
+                    v = restaurante.get("user_ratings_total") or 0
+                    r = restaurante.get("rating") or 0
+                    return (v / (v + umbral_m)) * r + (umbral_m / (v + umbral_m)) * media_base_c
 
-            formatted.sort(key=calcular_peso, reverse=True)
+                formatted.sort(key=calcular_peso, reverse=True)
             
             return {
                 "results": formatted,
@@ -91,7 +135,9 @@ class RecommendationService:
                 "google_maps_uri": place.get("googleMapsUri"),
                 "website_uri": place.get("websiteUri"),
                 "opening_hours": place.get("regularOpeningHours", {}).get("weekdayDescriptions", []),
-                "summary": place.get("editorialSummary", {}).get("text", "")
+                "summary": place.get("editorialSummary", {}).get("text", ""),
+                "latitude": place.get("location", {}).get("latitude"),
+                "longitude": place.get("location", {}).get("longitude")
             })
         return formatted
 

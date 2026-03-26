@@ -6,6 +6,7 @@ class RecommendationRequest(BaseModel):
     prices: List[str]
     include_unconfirmed_price: bool
     location: str
+    sort_by: Optional[str] = "rating"
     max_results: Optional[int] = 10
     page_token: Optional[str] = None
     open_now: Optional[bool] = None

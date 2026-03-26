@@ -51,6 +51,9 @@ const RestaurantRecommendationPage: React.FC = () => {
     const [preferredLocation, setPreferredLocation] = useState('');
     const [customLocation, setCustomLocation] = useState('');
 
+    // Sort
+    const [sortBy, setSortBy] = useState<'rating' | 'distance'>('rating');
+
     // Results logic
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -59,6 +62,9 @@ const RestaurantRecommendationPage: React.FC = () => {
     const [nextPageToken, setNextPageToken] = useState<string | null>(null);
     const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
     const [expandedRestaurantId, setExpandedRestaurantId] = useState<string | null>(null);
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
 
 
     useEffect(() => {
@@ -102,10 +108,10 @@ const RestaurantRecommendationPage: React.FC = () => {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const triggerSearch = async (currentSortBy: string) => {
         setError(null);
         setLoading(true);
+        setCurrentPage(1);
         setNextPageToken(null);
         setExpandedRestaurantId(null);
 
@@ -123,7 +129,8 @@ const RestaurantRecommendationPage: React.FC = () => {
                 prices: selectedPrices,
                 include_unconfirmed_price: includeUnconfirmedPrice,
                 open_now: openNow,
-                location: currentSearchLocation
+                location: currentSearchLocation,
+                sort_by: currentSortBy
             });
 
             setResults(data.results);
@@ -136,7 +143,18 @@ const RestaurantRecommendationPage: React.FC = () => {
         }
     };
 
-    const handleLoadMore = async () => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await triggerSearch(sortBy);
+    };
+
+    const handleNextPage = async () => {
+        const maxCurrentPages = Math.ceil(results.length / ITEMS_PER_PAGE);
+        if (currentPage < maxCurrentPages) {
+            setCurrentPage(prev => prev + 1);
+            return;
+        }
+
         if (!nextPageToken || loadingMore) return;
 
         setLoadingMore(true);
@@ -149,16 +167,24 @@ const RestaurantRecommendationPage: React.FC = () => {
                 include_unconfirmed_price: includeUnconfirmedPrice,
                 open_now: openNow,
                 location: currentSearchLocation,
+                sort_by: sortBy,
                 page_token: nextPageToken
             });
 
             setResults(prev => [...prev, ...data.results]);
             setNextPageToken(data.next_page_token || null);
+            setCurrentPage(prev => prev + 1);
         } catch (err: any) {
             console.error("Error al cargar más resultados:", err);
             setError('No se pudieron cargar más resultados.');
         } finally {
             setLoadingMore(false);
+        }
+    };
+
+    const handlePrevPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(prev => prev - 1);
         }
     };
 
@@ -410,13 +436,44 @@ const RestaurantRecommendationPage: React.FC = () => {
 
                 {results.length > 0 && (
                     <div style={{ marginTop: '3.5rem', width: '100%', animation: 'fadeSlideIn 0.5s ease', paddingBottom: '3rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.8rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
                             <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Sugerencias para ti</h2>
                             <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{results.length} resultados encontrados</span>
                         </div>
 
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem', padding: '1rem', background: 'var(--surface2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)' }}>Ordenar por:</span>
+                            <select
+                                aria-label="Ordenar resultados"
+                                value={sortBy}
+                                onChange={(e) => {
+                                    const newSort = e.target.value as 'rating' | 'distance';
+                                    setSortBy(newSort);
+                                    if (results.length > 0) triggerSearch(newSort);
+                                }}
+                                style={{
+                                    background: `var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 0.75rem center`,
+                                    backgroundSize: '16px',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: 'var(--radius-sm)',
+                                    color: 'var(--text)',
+                                    padding: '0.5rem 2.5rem 0.5rem 1rem',
+                                    fontSize: '0.9rem',
+                                    outline: 'none',
+                                    cursor: 'pointer',
+                                    appearance: 'none',
+                                    minWidth: '220px',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                                }}
+                            >
+                                <option value="rating">⭐ Mejor valoración</option>
+                                <option value="distance">📍 Cercanía a la ubicación</option>
+                                <option value="reviews">🔥 Más populares</option>
+                            </select>
+                        </div>
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: 'var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                            {results.map((place: any) => (
+                            {results.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((place: any) => (
                                 <div key={place.id} className="restaurant-card-container" style={{ display: 'flex', flexDirection: 'column', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
                                     <div className="restaurant-card"
                                         onClick={() => setExpandedRestaurantId(expandedRestaurantId === place.id ? null : place.id)}
@@ -624,19 +681,45 @@ const RestaurantRecommendationPage: React.FC = () => {
                             ))}
                         </div>
 
-                        {nextPageToken && (
-                            <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
-                                <button
-                                    type="button"
-                                    onClick={handleLoadMore}
-                                    disabled={loadingMore}
-                                    className={`btn-primary${loadingMore ? ' loading' : ''}`}
-                                    style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)', width: 'auto', padding: '0.6rem 2rem' }}
-                                >
-                                    {loadingMore ? '' : 'Ver más restaurantes'}
-                                </button>
-                            </div>
-                        )}
+                        <div style={{ marginTop: '2.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem' }}>
+                            <button
+                                type="button"
+                                onClick={handlePrevPage}
+                                disabled={currentPage === 1 || loadingMore}
+                                className="btn-secondary"
+                                style={{
+                                    visibility: currentPage === 1 ? 'hidden' : 'visible',
+                                    padding: '0.6rem 1.5rem',
+                                    minWidth: '100px',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center'
+                                }}
+                            >
+                                Anterior
+                            </button>
+                            
+                            <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: '1rem' }}>
+                                {currentPage}
+                            </span>
+
+                            <button
+                                type="button"
+                                onClick={handleNextPage}
+                                disabled={loadingMore || (currentPage >= Math.ceil(results.length / ITEMS_PER_PAGE) && !nextPageToken)}
+                                className={`btn-secondary${loadingMore ? ' loading' : ''}`}
+                                style={{
+                                    visibility: (currentPage >= Math.ceil(results.length / ITEMS_PER_PAGE) && !nextPageToken) ? 'hidden' : 'visible',
+                                    padding: '0.6rem 1.5rem',
+                                    minWidth: '100px',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center'
+                                }}
+                            >
+                                {loadingMore ? '' : 'Siguiente'}
+                            </button>
+                        </div>
 
                         <div style={{ marginTop: '2.5rem', textAlign: 'center' }}>
                             <img src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png" alt="Powered by Google" style={{ opacity: 0.7, filter: 'invert(1) grayscale(1)' }} />

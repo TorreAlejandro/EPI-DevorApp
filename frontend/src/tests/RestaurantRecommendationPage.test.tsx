@@ -70,7 +70,7 @@ describe('RestaurantRecommendationPage', () => {
         });
         const customRadio = screen.getByLabelText(/Escoger ubicación/i);
         fireEvent.click(customRadio);
-        
+
         // El input de autocomplete debe ser visible (mockeado en setupTests)
         expect(screen.getByTestId('mock-autocomplete')).toBeInTheDocument();
     });
@@ -91,7 +91,7 @@ describe('RestaurantRecommendationPage', () => {
         });
 
         renderPage();
-        
+
         // Esperar a que se cargue la ubicación preferida
         await waitFor(() => {
             expect(screen.getByText(/Usar ubicación preferida/i)).toBeInTheDocument();
@@ -109,6 +109,46 @@ describe('RestaurantRecommendationPage', () => {
         expect(screen.getByText(/4\.5/)).toBeInTheDocument();
     });
 
+    it('debe reenviar la búsqueda con sort_by: "distance" cuando se cambia el filtro a "Cercanía"', async () => {
+        // Primera llamada devuelve resultados
+        (recommendationService.search as any).mockResolvedValueOnce({
+            results: [{ id: '1', name: 'Sushi Bar', rating: 4.5, user_ratings_total: 100 }],
+            next_page_token: null
+        });
+        
+        // Segunda llamada al cambiar el filtro
+        (recommendationService.search as any).mockResolvedValueOnce({
+            results: [{ id: '2', name: 'Taco Stand', rating: 4.8, user_ratings_total: 200 }],
+            next_page_token: null
+        });
+
+        renderPage();
+
+        await waitFor(() => {
+            expect(screen.getByText(/Usar ubicación preferida/i)).toBeInTheDocument();
+        });
+
+        // Ejecutar primera búsqueda para mostrar los resultados y el bloque de "Ordenar por"
+        const searchBtn = screen.getByRole('button', { name: /Buscar Sugerencias/i });
+        fireEvent.click(searchBtn);
+
+        await waitFor(() => {
+            expect(screen.getByText(/Ordenar por:/i)).toBeInTheDocument();
+        });
+
+        // Cambiar dropdown a Cercanía
+        const select = screen.getByRole('combobox', { name: /Ordenar resultados/i });
+        fireEvent.change(select, { target: { value: 'distance' } });
+
+        // Verificar que se llamó a search automáticamente con distance
+        await waitFor(() => {
+            expect(recommendationService.search).toHaveBeenCalledWith(expect.objectContaining({
+                sort_by: 'distance',
+                location: 'Valencia'
+            }));
+        });
+    });
+
     it('debe expandir los detalles del restaurante al hacer click', async () => {
         (recommendationService.search as any).mockResolvedValue({
             results: [
@@ -124,11 +164,11 @@ describe('RestaurantRecommendationPage', () => {
         });
 
         renderPage();
-        
+
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /Buscar Sugerencias/i })).toBeInTheDocument();
         });
-        
+
         fireEvent.click(screen.getByRole('button', { name: /Buscar Sugerencias/i }));
 
         await waitFor(() => {
@@ -143,14 +183,14 @@ describe('RestaurantRecommendationPage', () => {
         expect(screen.getByText(/SELECCIONAR ESTE RESTAURANTE/i)).toBeInTheDocument();
     });
 
-    it('debe mostrar el botón de "Ver más" si hay token de paginación', async () => {
+    it('debe mostrar la paginación con el botón "Siguiente" si hay token de paginación', async () => {
         (recommendationService.search as any).mockResolvedValueOnce({
             results: [{ id: '1', name: 'Rest 1' }],
             next_page_token: 'token_valido'
         });
 
         renderPage();
-        
+
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /Buscar Sugerencias/i })).toBeInTheDocument();
         });
@@ -158,9 +198,8 @@ describe('RestaurantRecommendationPage', () => {
         fireEvent.click(screen.getByRole('button', { name: /Buscar Sugerencias/i }));
 
         await waitFor(() => {
-            // El componente renderiza "Ver más restaurantes"
-            // Buscamos cualquier botón que contenga "Ver más"
-            expect(screen.getByText(/Ver más/i)).toBeInTheDocument();
+            // El componente renderiza la nueva paginación con "Siguiente" activo
+            expect(screen.getByRole('button', { name: /Siguiente/i })).toBeInTheDocument();
         });
     });
 });

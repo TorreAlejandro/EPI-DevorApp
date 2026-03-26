@@ -112,3 +112,46 @@ async def test_google_api_error(mock_post, service, base_request):
 
     result = await service.search_restaurants(base_request)
     assert result == []
+
+@pytest.mark.asyncio
+@patch("httpx.AsyncClient.post")
+@patch.object(RecommendationService, "_geocode_location")
+async def test_distance_sorting(mock_geocode, mock_post, service, base_request):
+    base_request.sort_by = "distance"
+    
+    # Mock geocode result (lat, lng of "Madrid" center)
+    mock_geocode.return_value = (40.4168, -3.7038)
+    
+    # Mock restaurant response with locations
+    # A is at (40.4168, -3.7038) -> distance = 0
+    # B is at (40.4200, -3.7000) -> distance > 0
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "places": [
+            {
+                "id": "B",
+                "displayName": {"text": "Far Restaurant"},
+                "location": {"latitude": 40.4200, "longitude": -3.7000}
+            },
+            {
+                "id": "A",
+                "displayName": {"text": "Close Restaurant"},
+                "location": {"latitude": 40.4168, "longitude": -3.7038}
+            }
+        ]
+    }
+    mock_post.return_value = mock_response
+
+    result = await service.search_restaurants(base_request)
+    results = result["results"]
+
+    # "Close Restaurant" must be sorted first because its distance is 0
+    assert len(results) == 2
+    assert results[0]["id"] == "A"
+    assert results[1]["id"] == "B"
+    
+    # Ensure Google Places API fieldmask includes "places.location"
+    _, kwargs = mock_post.call_args
+    headers = kwargs["headers"]
+    assert "places.location" in headers["X-Goog-FieldMask"]
