@@ -42,6 +42,19 @@ class RecommendationService:
             "languageCode": "es"
         }
         
+        # Geocodificar la ubicación solicitada para proporcionar Bias y evitar que Google use la IP del servidor local
+        lat, lng = await self._geocode_location(request.location)
+        if lat is not None and lng is not None:
+            payload["locationBias"] = {
+                "circle": {
+                    "center": {
+                        "latitude": lat,
+                        "longitude": lng
+                    },
+                    "radius": 30000.0  # 30km
+                }
+            }
+        
         if request.page_token:
             payload["pageToken"] = request.page_token
         
@@ -70,7 +83,7 @@ class RecommendationService:
             formatted = self._format_results(places)
             
             if getattr(request, 'sort_by', 'rating') == 'distance':
-                lat, lng = await self._geocode_location(request.location)
+                # Reutilizamos lat y lng que sacamos al inicio del endpoint
                 if lat is not None and lng is not None:
                     import math
                     def haversine(lat1, lon1, lat2, lon2):
