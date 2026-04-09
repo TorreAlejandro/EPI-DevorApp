@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 export interface HistorialEntry {
     id: number;
@@ -18,6 +18,26 @@ export const historialService = {
         if (!response.ok) {
             const data = await response.json();
             throw new Error(data.detail || 'Error al obtener el historial');
+        }
+
+        return await response.json();
+    },
+
+    getPopulares: async (location?: string, limit: number = 5): Promise<any[]> => {
+        const params = new URLSearchParams();
+        params.append('limit', limit.toString());
+        if (location) {
+            params.append('location', location);
+        }
+
+        const response = await fetch(`${API_URL}/historial/populares?${params.toString()}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.detail || 'Error al obtener populares');
         }
 
         return await response.json();

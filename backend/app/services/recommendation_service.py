@@ -156,7 +156,7 @@ class RecommendationService:
         headers = {
             "Content-Type": "application/json",
             "X-Goog-Api-Key": self.api_key,
-            "X-Goog-FieldMask": "id,displayName,formattedAddress,priceLevel,rating,userRatingCount,types,photos,googleMapsUri,websiteUri,regularOpeningHours,editorialSummary"
+            "X-Goog-FieldMask": "id,displayName,formattedAddress,priceLevel,rating,userRatingCount,types,photos,googleMapsUri,websiteUri,regularOpeningHours,editorialSummary,location"
         }
         
         async with httpx.AsyncClient() as client:

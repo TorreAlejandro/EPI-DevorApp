@@ -2,8 +2,9 @@
 Repositorio para la tabla `historial` usando SQLAlchemy.
 """
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Tuple
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.entities.historial import Historial
@@ -49,3 +50,19 @@ def delete_historial_entry(db: Session, entry_id: int, user_id: str) -> bool:
         db.commit()
         return True
     return False
+
+
+def get_top_places(db: Session, limit: int = 5) -> List[Tuple[str, int]]:
+    """
+    Devuelve los `limit` place_id más visitados globalmente (por todos los usuarios),
+    junto con su número de visitas, ordenados de mayor a menor.
+    """
+    rows = (
+        db.query(Historial.place_id, func.count(Historial.id).label("visit_count"))
+        .group_by(Historial.place_id)
+        .order_by(func.count(Historial.id).desc())
+        .limit(limit)
+        .all()
+    )
+    return [(row.place_id, row.visit_count) for row in rows]
+

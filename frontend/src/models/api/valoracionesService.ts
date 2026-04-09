@@ -36,11 +36,11 @@ export interface ValoracionDetailedResponse {
     restaurant: any; // We can use the same Google Places any type or history any type
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 export const valoracionesService = {
     valorarRestaurante: async (data: ValoracionCreate): Promise<ValoracionResponse> => {
-        const response = await fetch(`${API_URL}/api/valoraciones`, {
+        const response = await fetch(`${API_URL}/valoraciones`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -56,7 +56,7 @@ export const valoracionesService = {
     },
 
     obtenerMiValoracion: async (place_id: string): Promise<ValoracionResponse | null> => {
-        const response = await fetch(`${API_URL}/api/valoraciones/${place_id}`, {
+        const response = await fetch(`${API_URL}/valoraciones/${place_id}`, {
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
         });
@@ -74,7 +74,7 @@ export const valoracionesService = {
     },
 
     obtenerTodasMisValoraciones: async (): Promise<ValoracionDetailedResponse[]> => {
-        const response = await fetch(`${API_URL}/api/valoraciones`, {
+        const response = await fetch(`${API_URL}/valoraciones`, {
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
         });
@@ -87,7 +87,7 @@ export const valoracionesService = {
     },
 
     eliminarValoracion: async (place_id: string): Promise<void> => {
-        const response = await fetch(`${API_URL}/api/valoraciones/${place_id}`, {
+        const response = await fetch(`${API_URL}/valoraciones/${place_id}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -100,7 +100,7 @@ export const valoracionesService = {
     },
 
     obtenerResenasRestaurante: async (place_id: string): Promise<ValoracionPublica[]> => {
-        const response = await fetch(`${API_URL}/api/valoraciones/restaurante/${place_id}`, {
+        const response = await fetch(`${API_URL}/valoraciones/restaurante/${place_id}`, {
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
         });
@@ -113,7 +113,7 @@ export const valoracionesService = {
     },
 
     darMeGusta: async (valoracion_id: number): Promise<ValoracionPublica> => {
-        const response = await fetch(`${API_URL}/api/valoraciones/${valoracion_id}/like`, {
+        const response = await fetch(`${API_URL}/valoraciones/${valoracion_id}/like`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',

@@ -61,6 +61,58 @@ async def get_historial(
     return results
 
 
+@router.get("/populares")
+async def get_popular_historial(
+    limit: int = 5,
+    location: str | None = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Devuelve los restaurantes más populares globalmente en base al historial.
+    Si se proporciona una ubicación, filtra los resultados para que estén
+    a un máximo de ~30 km de la misma.
+    """
+    from app.services.recommendation_service import recommendation_service
+    import asyncio
+    import math
+
+    # Para tener mejor muestra para el filtro geográfico, cogemos un top 20
+    top_places = historial_service.get_popular_places(db, limit=20)
+    
+    tasks = [recommendation_service.get_place_details(place_id) for place_id, _ in top_places]
+    details_list = await asyncio.gather(*tasks)
+    
+    results = []
+    for (place_id, visit_count), details in zip(top_places, details_list):
+        if not details: continue
+        details['visit_count'] = visit_count
+        results.append(details)
+        
+    if location:
+        lat, lng = await recommendation_service._geocode_location(location)
+        if lat is not None and lng is not None:
+            def haversine(lat1, lon1, lat2, lon2):
+                R = 6371.0
+                dlat = math.radians(lat2 - lat1)
+                dlon = math.radians(lon2 - lon1)
+                a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                return R * c
+            
+            filtered_results = []
+            for r in results:
+                r_lat = r.get("latitude")
+                r_lng = r.get("longitude")
+                if r_lat is not None and r_lng is not None:
+                    dist = haversine(lat, lng, r_lat, r_lng)
+                    if dist <= 30.0:
+                        filtered_results.append(r)
+            results = filtered_results
+            
+    return results[:limit]
+
+
+
 @router.post("", status_code=201)
 async def add_to_historial(
     data: HistorialEntryCreate,
