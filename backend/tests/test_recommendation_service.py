@@ -32,7 +32,8 @@ async def test_search_restaurants_basic(mock_post, service, base_request):
                 "displayName": {"text": "Restaurante A"},
                 "formattedAddress": "Calle 123",
                 "rating": 4.5,
-                "userRatingCount": 100
+                "userRatingCount": 100,
+                "types": ["restaurant"]
             }
         ]
     }
@@ -83,13 +84,15 @@ async def test_bayesian_sorting(mock_post, service, base_request):
                 "id": "A",
                 "displayName": {"text": "Perfecto pero nuevo"},
                 "rating": 5.0,
-                "userRatingCount": 1
+                "userRatingCount": 1,
+                "types": ["restaurant"]
             },
             {
                 "id": "B",
                 "displayName": {"text": "Muy bueno y popular"},
                 "rating": 4.8,
-                "userRatingCount": 1000
+                "userRatingCount": 1000,
+                "types": ["restaurant"]
             }
         ]
     }
@@ -132,12 +135,14 @@ async def test_distance_sorting(mock_geocode, mock_post, service, base_request):
             {
                 "id": "B",
                 "displayName": {"text": "Far Restaurant"},
-                "location": {"latitude": 40.4200, "longitude": -3.7000}
+                "location": {"latitude": 40.4200, "longitude": -3.7000},
+                "types": ["restaurant"]
             },
             {
                 "id": "A",
                 "displayName": {"text": "Close Restaurant"},
-                "location": {"latitude": 40.4168, "longitude": -3.7038}
+                "location": {"latitude": 40.4168, "longitude": -3.7038},
+                "types": ["restaurant"]
             }
         ]
     }
@@ -155,3 +160,93 @@ async def test_distance_sorting(mock_geocode, mock_post, service, base_request):
     _, kwargs = mock_post.call_args
     headers = kwargs["headers"]
     assert "places.location" in headers["X-Goog-FieldMask"]
+
+@pytest.mark.asyncio
+@patch("httpx.AsyncClient.post")
+async def test_search_restaurants_filtering(mock_post, service, base_request):
+    # Mock response with one restaurant and one fish market
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "places": [
+            {
+                "id": "R1",
+                "displayName": {"text": "Real Restaurant"},
+                "types": ["restaurant", "food", "point_of_interest"]
+            },
+            {
+                "id": "M1",
+                "displayName": {"text": "Pescadería Paco"},
+                "types": ["fish_market", "store", "food", "point_of_interest"]
+            },
+            {
+                "id": "S1",
+                "displayName": {"text": "Supermercado"},
+                "types": ["supermarket", "grocery_or_supermarket", "store"]
+            }
+        ]
+    }
+    mock_post.return_value = mock_response
+
+    result = await service.search_restaurants(base_request)
+    results = result["results"]
+
+    # Only "Real Restaurant" should remain
+    assert len(results) == 1
+    assert results[0]["id"] == "R1"
+
+@pytest.mark.asyncio
+@patch("httpx.AsyncClient.post")
+async def test_search_restaurants_heuristic(mock_post, service, base_request):
+    # Mock response with a specific restaurant type that is NOT in the explicit list but matches heuristic
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "places": [
+            {
+                "id": "S1",
+                "displayName": {"text": "Restaurante Español"},
+                "types": ["spanish_restaurant", "food", "point_of_interest"]
+            }
+        ]
+    }
+    mock_post.return_value = mock_response
+
+    result = await service.search_restaurants(base_request)
+    results = result["results"]
+
+    # Should remain because it ends with _restaurant
+    assert len(results) == 1
+    assert results[0]["id"] == "S1"
+
+@pytest.mark.asyncio
+@patch("httpx.AsyncClient.post")
+async def test_search_restaurants_tags_json(mock_post, service, base_request):
+    # Mock tags to check against whatever is in tags.json
+    # In this mock, we assume 'spanish_restaurant' IS in tags.json (based on user's manual change)
+    # but 'alien_restaurant' is NOT.
+    
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "places": [
+            {
+                "id": "Valid",
+                "displayName": {"text": "Restaurante Español"},
+                "types": ["spanish_restaurant", "food"]
+            },
+            {
+                "id": "Invalid",
+                "displayName": {"text": "Tienda Rara"},
+                "types": ["alien_store", "point_of_interest"]
+            }
+        ]
+    }
+    mock_post.return_value = mock_response
+
+    result = await service.search_restaurants(base_request)
+    results = result["results"]
+
+    # Only 'Valid' should remain
+    assert any(r["id"] == "Valid" for r in results)
+    assert not any(r["id"] == "Invalid" for r in results)

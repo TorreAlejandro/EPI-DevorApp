@@ -1,4 +1,6 @@
 import httpx
+import json
+import os
 from typing import List, Dict, Any
 from app.core.config import settings
 from app.models.dtos.recommendation_dto import RecommendationRequest
@@ -8,6 +10,18 @@ class RecommendationService:
         self.api_key = settings.GOOGLE_API_KEY
         self.base_url = "https://places.googleapis.com/v1/places:searchText"
         self.geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
+        self._valid_tag_ids = self._load_valid_tags()
+
+    def _load_valid_tags(self) -> set:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        tags_path = os.path.join(current_dir, "..", "data", "tags.json")
+        try:
+            with open(tags_path, 'r', encoding='utf-8') as f:
+                tags = json.load(f)
+                return {tag["id"] for tag in tags}
+        except Exception as e:
+            print(f"Error loading tags.json: {e}")
+            return {"restaurant", "cafe", "bar", "bakery"}
 
     async def _geocode_location(self, location: str) -> tuple[float, float]:
         async with httpx.AsyncClient() as client:
@@ -132,8 +146,47 @@ class RecommendationService:
             }
 
     def _format_results(self, places: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        # Tipos que definitivamente no queremos en una app de restaurantes por defecto
+        # (Aun si estuvieran en tags.json, aplicamos filtro estricto si NO tienen un tipo de restaurante claro)
+        EXCLUDED_TYPES = {
+            "fish_market", "fruit_and_vegetable_store", "meat_market", 
+            "pharmacy", "drugstore", "department_store",
+            "shopping_mall", "car_repair", "gas_station",
+            "supermarket", "grocery_or_supermarket", "convenience_store", "store"
+        }
+        
+        # Tipos que confirman que es un lugar de comida real (usamos tags.json + heurística)
+        # Pero para la exclusión rápida, nos apoyamos en los IDs cargados
+        
         formatted = []
         for place in places:
+            types = place.get("types", [])
+            
+            # Un lugar es válido si tiene al menos un tipo contemplado en tags.json
+            # o si cumple la heurística de restaurante/bar/cafe.
+            has_valid_tag = any(t in self._valid_tag_ids for t in types)
+            
+            # Heurística de seguridad para no perder sitios específicos no listados
+            has_restaurant_heuristic = any(
+                t.endswith("_restaurant") or t.endswith("_bar") or 
+                t.endswith("_cafe") or t.endswith("_pub") 
+                for t in types
+            )
+            
+            # Si no tiene etiqueta válida ni cumple la heurística, fuera.
+            if not has_valid_tag and not has_restaurant_heuristic:
+                continue
+
+            # Filtro de seguridad adicional: si tiene un tipo excluido (como pescadería)
+            # y NO es explícitamente un restaurante/bar (según heurística o tags específicos), fuera.
+            has_excluded = any(t in EXCLUDED_TYPES for t in types)
+            # Consideramos tipos "fuertes" de comida para desempatar excluidos
+            strong_food_types = {"restaurant", "cafe", "bar", "pub", "bistro", "gastropub", "pizzeria"}
+            has_strong_food = any(t in strong_food_types or t.endswith("_restaurant") for t in types)
+
+            if has_excluded and not has_strong_food:
+                continue
+
             name = place.get("displayName", {}).get("text", "Sin nombre")
             
             formatted.append({
@@ -143,7 +196,7 @@ class RecommendationService:
                 "price_level": place.get("priceLevel"),
                 "rating": place.get("rating"),
                 "user_ratings_total": place.get("userRatingCount"),
-                "types": place.get("types", []),
+                "types": types,
                 "main_photo": self._get_photo_url(place.get("photos", [])),
                 "google_maps_uri": place.get("googleMapsUri"),
                 "website_uri": place.get("websiteUri"),
