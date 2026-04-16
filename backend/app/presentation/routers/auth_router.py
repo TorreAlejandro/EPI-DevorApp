@@ -82,3 +82,24 @@ def check_verification(email: str):
 def password_reset(data: PasswordResetRequest):
     auth_service.request_password_reset(data.email)
     return {"message": "Si el correo está registrado, se enviará un enlace de recuperación."}
+
+@router.get("/check-availability")
+def check_availability(email: str = "", username: str = ""):
+    """
+    Comprueba si un email y/o username ya están en uso.
+    Devuelve { email_taken: bool, username_taken: bool }.
+    No crea ni modifica nada.
+    """
+    from app.infrastructure.repositories.usuario_repo import get_uid_by_username, get_usuario_by_email
+
+    email_taken = False
+    username_taken = False
+
+    if email:
+        email_taken = get_usuario_by_email(email) is not None
+
+    if username:
+        username_taken = get_uid_by_username(username) is not None
+
+    return {"email_taken": email_taken, "username_taken": username_taken}
+

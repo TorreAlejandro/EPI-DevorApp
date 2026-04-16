@@ -77,5 +77,21 @@ export const authService = {
         }
         const data = await response.json();
         return data.verified;
-    }
+    },
+
+    checkAvailability: async (
+        email: string,
+        username: string
+    ): Promise<{ email_taken: boolean; username_taken: boolean }> => {
+        const params = new URLSearchParams();
+        if (email)    params.append('email', email);
+        if (username) params.append('username', username);
+
+        const response = await fetch(`${API_URL}/check-availability?${params}`);
+        if (!response.ok) {
+            // Si falla la red, no bloqueamos el flujo
+            return { email_taken: false, username_taken: false };
+        }
+        return response.json();
+    },
 };

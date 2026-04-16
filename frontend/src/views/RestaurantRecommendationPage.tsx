@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Autocomplete from "react-google-autocomplete";
+import { Search, Star, ChevronLeft, Flame, MapPin, SlidersHorizontal, Map } from 'lucide-react';
+import TopBar from '../components/TopBar';
 import { authService } from '../models/api/authService';
 import { recommendationService } from '../models/api/recommendationService';
 import { historialService } from '../models/api/historialService';
@@ -224,12 +226,12 @@ const RestaurantRecommendationPage: React.FC = () => {
         setResenasPorRestaurante(prev => ({
             ...prev,
             [placeId]: (prev[placeId] || []).map(r =>
-                r.id === valoracionId 
-                    ? { 
-                        ...r, 
+                r.id === valoracionId
+                    ? {
+                        ...r,
                         ha_dado_me_gusta: !yaDabaLike,
                         me_gustas: !yaDabaLike ? r.me_gustas + 1 : Math.max(0, r.me_gustas - 1)
-                      } 
+                    }
                     : r
             )
         }));
@@ -247,12 +249,12 @@ const RestaurantRecommendationPage: React.FC = () => {
             setResenasPorRestaurante(prev => ({
                 ...prev,
                 [placeId]: (prev[placeId] || []).map(r =>
-                    r.id === valoracionId 
-                        ? { 
-                            ...r, 
+                    r.id === valoracionId
+                        ? {
+                            ...r,
                             ha_dado_me_gusta: yaDabaLike,
                             me_gustas: yaDabaLike ? r.me_gustas + 1 : Math.max(0, r.me_gustas - 1)
-                          } 
+                        }
                         : r
                 )
             }));
@@ -305,171 +307,153 @@ const RestaurantRecommendationPage: React.FC = () => {
     };
 
     return (
-        <div className="app-container" style={{ alignItems: 'flex-start', paddingTop: '4rem' }}>
-            <div className="auth-card" style={{ maxWidth: '600px', width: '100%' }}>
-                <div className="auth-header">
-                    <div className="auth-logo">🔍</div>
-                    <h1>Recomendador de Restaurantes</h1>
-                    <p>Encuentra tu próximo lugar favorito</p>
-                </div>
+        <div className="page-screen">
+            <TopBar showMenu={true} />
 
-                <form onSubmit={handleSubmit} className="auth-form" noValidate>
-                    {results.length > 0 && (
-                        <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '2rem' }}>
-                            <div
-                                onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-                                style={{
-                                    flex: 1,
-                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                    padding: '1rem 1.25rem', background: 'var(--surface2)',
-                                    borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-                                    border: '1px solid var(--border)', transition: 'all 0.2s ease',
-                                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
-                                }}
-                            >
-                                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--accent)' }}>
-                                    {isPanelCollapsed ? '🔍 Volver a buscar / Modificar filtros' : '🔼 Plegar opciones'}
-                                </span>
-                                <span>{isPanelCollapsed ? '▼' : '▲'}</span>
-                            </div>
-                            {isPanelCollapsed && (
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/home')}
-                                    className="btn-secondary"
-                                    style={{
-                                        padding: '0 1.25rem',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        borderRadius: 'var(--radius-sm)'
-                                    }}
-                                >
-                                    🏠 Volver al inicio
-                                </button>
-                            )}
-                        </div>
-                    )}
+            <main className="home-body" style={{ padding: '0 var(--space-5) var(--space-8)' }}>
+                <form onSubmit={handleSubmit} noValidate>
+
 
                     {!isPanelCollapsed && (
-                        <div style={{ animation: 'fadeSlideIn 0.3s ease' }}>
-                            <div className="form-group" style={{ position: 'relative', marginBottom: '1.8rem' }}>
-                                <label style={{ marginBottom: '0.8rem', display: 'block' }}>Categorías</label>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                    {selectedTags.map(tag => (
-                                        <span key={tag.id} style={{
-                                            background: 'var(--accent)', color: 'white',
-                                            padding: '0.3rem 0.6rem', borderRadius: 'var(--radius-sm)',
-                                            fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem'
-                                        }}>
-                                            {tag.label}
-                                            <button type="button" onClick={() => handleRemoveTag(tag.id)}
-                                                style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1rem', lineHeight: '1' }}>
-                                                &times;
-                                            </button>
-                                        </span>
-                                    ))}
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="Ej. Mexicana, Pizza, Sushi..."
-                                    value={tagInput}
-                                    onChange={(e) => setTagInput(e.target.value)}
-                                    onFocus={() => { if (tagInput) setIsTagsDropdownOpen(true) }}
-                                />
-                                {isTagsDropdownOpen && filteredTags.length > 0 && (
-                                    <div style={{
-                                        position: 'absolute', top: '100%', left: 0, right: 0,
-                                        background: 'var(--surface2)', border: '1px solid var(--border)',
-                                        borderRadius: 'var(--radius-sm)', zIndex: 10, maxHeight: '200px',
-                                        overflowY: 'auto', marginTop: '0.3rem', boxShadow: 'var(--shadow)'
-                                    }}>
-                                        {filteredTags.map(tag => (
-                                            <div key={tag.id}
-                                                onClick={() => handleAddTag(tag)}
-                                                style={{ padding: '0.6rem 0.8rem', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: '0.9rem' }}
-                                                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface)'}
-                                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                            >
-                                                <div style={{ fontWeight: 500 }}>{tag.label}</div>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{tag.category}</div>
-                                            </div>
+                        <div style={{ animation: 'fadeSlideIn 0.3s ease', paddingTop: 'var(--space-6)' }}>
+                            {/* Header */}
+                            <div style={{ textAlign: 'center', marginBottom: '2.5rem', marginTop: '1rem' }}>
+                                <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.5px' }}>Recomendador</h2>
+                                <p style={{ margin: 0, fontSize: '1rem', color: 'var(--muted)', marginTop: '0.4rem' }}>Encuentra tu próximo lugar favorito</p>
+                            </div>
+
+                            {/* Tipo de cocina */}
+                            <div style={{ marginBottom: '1.8rem' }}>
+                                <label style={{ fontSize: 'var(--font-sm)', color: 'var(--text)', marginBottom: '0.5rem', display: 'block', fontWeight: 500 }}>Tipo de cocina</label>
+                                {selectedTags.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.8rem' }}>
+                                        {selectedTags.map(tag => (
+                                            <span key={tag.id} style={{
+                                                background: 'rgba(124, 109, 250, 0.15)', color: 'var(--accent-light)',
+                                                padding: '6px 12px', borderRadius: '99px', border: '1px solid rgba(124, 109, 250, 0.3)',
+                                                fontSize: 'var(--font-sm)', display: 'inline-flex', alignItems: 'center', gap: '6px'
+                                            }}>
+                                                {tag.label}
+                                                <button type="button" onClick={() => handleRemoveTag(tag.id)} style={{ padding: 0, color: 'inherit', fontSize: '1.2rem', lineHeight: '0.5', marginTop: '-2px' }}>&times;</button>
+                                            </span>
                                         ))}
                                     </div>
                                 )}
-                            </div>
-
-                            <div className="form-group" style={{ marginBottom: '1.8rem' }}>
-                                <label style={{ marginBottom: '0.8rem', display: 'block' }}>Rango de precios</label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-                                    {PRICE_LEVELS.map(price => (
-                                        <label key={price.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text)' }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedPrices.includes(price.id)}
-                                                onChange={() => handlePriceToggle(price.id)}
-                                                style={{ width: 'auto', accentColor: 'var(--accent)' }}
-                                            />
-                                            <span style={{ minWidth: '40px', fontWeight: 'bold' }}>
-                                                {currencySymbol.repeat(price.level)}
-                                            </span>
-                                            <span>- {price.label}</span>
-                                        </label>
-                                    ))}
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text)', marginTop: '0.8rem', borderTop: '1px solid var(--border)', paddingTop: '0.8rem' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={includeUnconfirmedPrice}
-                                            onChange={() => setIncludeUnconfirmedPrice(!includeUnconfirmedPrice)}
-                                            style={{ width: 'auto', accentColor: 'var(--accent)' }}
-                                        />
-                                        Incluir sitios sin precio confirmado
-                                    </label>
-                                    <label htmlFor="open-now-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text)', marginTop: '0.5rem' }}>
-                                        <input
-                                            id="open-now-checkbox"
-                                            type="checkbox"
-                                            checked={openNow}
-                                            onChange={() => setOpenNow(!openNow)}
-                                            style={{ width: 'auto', accentColor: 'var(--accent)' }}
-                                        />
-                                        Solo lugares abiertos ahora
-                                    </label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="+ Añadir tipo de cocina..."
+                                        value={tagInput}
+                                        onChange={(e) => setTagInput(e.target.value)}
+                                        onFocus={() => { if (tagInput) setIsTagsDropdownOpen(true) }}
+                                        style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '12px 16px', color: 'var(--text)', width: '100%', fontSize: 'var(--font-base)' }}
+                                    />
+                                    {isTagsDropdownOpen && filteredTags.length > 0 && (
+                                        <div style={{
+                                            position: 'absolute', top: '100%', left: 0, right: 0,
+                                            background: 'var(--surface-2)', border: '1px solid var(--border)',
+                                            borderRadius: 'var(--radius-sm)', zIndex: 10, maxHeight: '200px',
+                                            overflowY: 'auto', marginTop: '0.3rem', boxShadow: 'var(--shadow-md)'
+                                        }}>
+                                            {filteredTags.map(tag => (
+                                                <div key={tag.id}
+                                                    onClick={() => handleAddTag(tag)}
+                                                    style={{ padding: '0.8rem 1rem', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}
+                                                >
+                                                    <div style={{ fontWeight: 500, fontSize: 'var(--font-sm)', color: 'var(--text)' }}>{tag.label}</div>
+                                                    <div style={{ fontSize: 'var(--font-xs)', color: 'var(--muted)' }}>{tag.category}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
-                            <div className="form-group" style={{ marginBottom: '1.8rem' }}>
-                                <label style={{ marginBottom: '0.8rem', display: 'block' }}>Ubicación</label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '0.5rem' }}>
-                                    <label htmlFor="preferred-location-radio" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text)' }}>
-                                        <input
-                                            id="preferred-location-radio"
-                                            type="radio"
-                                            name="locationMode"
-                                            checked={locationMode === 'preferred'}
-                                            onChange={() => {
-                                                setLocationMode('preferred');
-                                                setCustomLocation('');
+                            {/* Rango de precios */}
+                            <div style={{ marginBottom: '2rem' }}>
+                                <label style={{ fontSize: 'var(--font-sm)', color: 'var(--text)', marginBottom: '0.5rem', display: 'block', fontWeight: 500 }}>Rango de precios</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                    {PRICE_LEVELS.map(price => (
+                                        <button
+                                            key={price.id}
+                                            type="button"
+                                            onClick={() => handlePriceToggle(price.id)}
+                                            style={{
+                                                padding: '10px 0',
+                                                border: selectedPrices.includes(price.id) ? '1px solid rgba(124, 109, 250, 0.5)' : '1px solid var(--border)',
+                                                background: selectedPrices.includes(price.id) ? 'rgba(124, 109, 250, 0.15)' : 'transparent',
+                                                borderRadius: 'var(--radius-sm)',
+                                                color: selectedPrices.includes(price.id) ? 'var(--accent-light)' : 'var(--muted)',
+                                                textAlign: 'center',
+                                                fontSize: 'var(--font-sm)',
+                                                transition: 'all var(--t-fast)'
                                             }}
-                                            style={{ width: 'auto', accentColor: 'var(--accent)' }}
-                                        />
-                                        Usar ubicación preferida
-                                    </label>
+                                        >
+                                            {currencySymbol.repeat(price.level)}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-xs)', color: 'var(--muted)', padding: '0 4px' }}>
+                                    <span>Económico</span>
+                                    <span>Exclusivo</span>
+                                </div>
+                            </div>
 
-                                    <label htmlFor="custom-location-radio" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text)' }}>
+                            {/* Settings Checkboxes */}
+                            <div style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                                <label style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={includeUnconfirmedPrice}
+                                        onChange={() => setIncludeUnconfirmedPrice(!includeUnconfirmedPrice)}
+                                        style={{ accentColor: 'var(--accent)', transform: 'scale(1.2)' }}
+                                    />
+                                    <span style={{ fontSize: 'var(--font-sm)', color: 'var(--text)' }}>Incluir sitios sin precio confirmado</span>
+                                </label>
+                                <label style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={openNow}
+                                        onChange={() => setOpenNow(!openNow)}
+                                        style={{ accentColor: 'var(--accent)', transform: 'scale(1.2)' }}
+                                    />
+                                    <span style={{ fontSize: 'var(--font-sm)', color: 'var(--text)' }}>Solo lugares abiertos ahora</span>
+                                </label>
+                            </div>
+
+                            {/* Location Settings */}
+                            <div style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: '2.5rem', display: 'flex', flexDirection: 'column' }}>
+                                <label style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                                    <input
+                                        type="radio"
+                                        name="locationMode"
+                                        checked={locationMode === 'preferred'}
+                                        onChange={() => {
+                                            setLocationMode('preferred');
+                                            setCustomLocation('');
+                                        }}
+                                        style={{ accentColor: 'var(--accent)', transform: 'scale(1.2)' }}
+                                    />
+                                    <div>
+                                        <span style={{ fontSize: 'var(--font-sm)', color: 'var(--text)', display: 'block', fontWeight: locationMode === 'preferred' ? 600 : 400 }}>Usar ubicación preferida</span>
+                                        <span style={{ fontSize: 'var(--font-xs)', color: 'var(--muted)', display: 'block', marginTop: '2px' }}>{preferredLocation || "Desconocida"}</span>
+                                    </div>
+                                </label>
+
+                                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                                         <input
-                                            id="custom-location-radio"
                                             type="radio"
                                             name="locationMode"
                                             checked={locationMode === 'custom'}
                                             onChange={() => setLocationMode('custom')}
-                                            style={{ width: 'auto', accentColor: 'var(--accent)' }}
+                                            style={{ accentColor: 'var(--accent)', transform: 'scale(1.2)' }}
                                         />
-                                        Escoger ubicación
+                                        <span style={{ fontSize: 'var(--font-sm)', color: 'var(--text)', fontWeight: locationMode === 'custom' ? 600 : 400 }}>Escoger otra ubicación</span>
                                     </label>
 
                                     {locationMode === 'custom' && (
-                                        <div style={{ marginTop: '0.3rem', marginLeft: '1.5rem' }}>
+                                        <div style={{ paddingLeft: '32px' }}>
                                             <Autocomplete
                                                 apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
                                                 onChange={() => setCustomLocation('')}
@@ -490,15 +474,15 @@ const RestaurantRecommendationPage: React.FC = () => {
                                                 options={{ types: [] }}
                                                 className="form-control"
                                                 style={{
-                                                    background: 'var(--surface2)',
+                                                    background: 'var(--surface-2)',
                                                     border: '1px solid var(--border)',
                                                     borderRadius: 'var(--radius-sm)',
                                                     color: 'var(--text)',
-                                                    fontSize: '0.9375rem',
-                                                    padding: '0.7rem 0.9rem',
+                                                    fontSize: 'var(--font-sm)',
+                                                    padding: '12px 14px',
                                                     width: '100%'
                                                 }}
-                                                placeholder="Escribe una ciudad o calle"
+                                                placeholder="Ej. Madrid, Barcelona..."
                                                 defaultValue={customLocation}
                                             />
                                         </div>
@@ -506,122 +490,140 @@ const RestaurantRecommendationPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                                <button type="button" onClick={() => navigate('/home')} className="btn-primary" style={{ flex: 1, background: 'var(--surface2)', color: 'var(--text)', boxShadow: 'none' }}>
-                                    Volver
-                                </button>
-                                <button type="submit" className={`btn-primary${loading ? ' loading' : ''}`} style={{ flex: 2 }} disabled={loading}>
-                                    {loading ? '' : 'Buscar Sugerencias'}
-                                </button>
-                            </div>
+                            {/* Submit Button */}
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                style={{
+                                    display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px',
+                                    padding: '16px', background: 'rgba(124, 109, 250, 0.15)',
+                                    border: '1px solid rgba(124, 109, 250, 0.4)', color: 'var(--accent-light)',
+                                    width: '100%', borderRadius: 'var(--radius-sm)', fontWeight: 600, fontSize: 'var(--font-base)',
+                                    transition: 'all 0.2s', opacity: loading ? 0.6 : 1
+                                }}
+                            >
+                                {loading ? 'Buscando...' : (
+                                    <>
+                                        <Star size={20} /> Buscar recomendaciones
+                                    </>
+                                )}
+                            </button>
                         </div>
                     )}
 
                     {error && (
-                        <div className="message error" style={{ marginTop: '1rem' }}>
+                        <div className="message error" style={{ marginTop: '1.5rem', background: 'var(--error-bg)', color: 'var(--error)', padding: '12px', border: '1px solid var(--error-border)', borderRadius: 'var(--radius-sm)' }}>
                             {error}
                         </div>
                     )}
                 </form>
 
+                    {results.length > 0 && isPanelCollapsed && (
+                        <div className="filter-chips-row">
+                            <div style={{ display: 'flex', gap: 'var(--space-2)', flex: 1, overflowX: 'auto', scrollbarWidth: 'none' }}>
+                                {selectedTags.map(tag => (
+                                    <div key={tag.id} className="filter-chip chip-tag read-only">
+                                        {tag.label}
+                                    </div>
+                                ))}
+                                {selectedPrices.map(p => (
+                                    <div key={p} className="filter-chip chip-price read-only">
+                                        {currencySymbol.repeat(PRICE_LEVELS.find(pl => pl.id === p)?.level || 1)}
+                                    </div>
+                                ))}
+                                {openNow && (
+                                    <div className="filter-chip chip-status read-only">
+                                        Abiertos ahora
+                                    </div>
+                                )}
+                                <div className="filter-chip chip-location">
+                                    <MapPin size={14} /> {locationMode === 'preferred' ? preferredLocation || 'Ubicación' : customLocation || 'Ubicación'}
+                                </div>
+                            </div>
+                            <button type="button" className="filter-chip chip-edit" onClick={() => setIsPanelCollapsed(false)}>
+                                <SlidersHorizontal size={14} /> Editar
+                            </button>
+                        </div>
+                    )}
+
                 {results.length > 0 && (
-                    <div style={{ marginTop: '3.5rem', width: '100%', animation: 'fadeSlideIn 0.5s ease', paddingBottom: '3rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Sugerencias para ti</h2>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{results.length} resultados encontrados</span>
-                        </div>
+                    <div style={{ marginTop: '1rem', width: '100%', animation: 'fadeSlideIn 0.3s ease', paddingBottom: '3rem' }}>
 
-                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem', padding: '1rem', background: 'var(--surface2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)' }}>Ordenar por:</span>
-                            <select
-                                aria-label="Ordenar resultados"
-                                value={sortBy}
-                                onChange={(e) => {
-                                    const newSort = e.target.value as 'rating' | 'distance';
-                                    setSortBy(newSort);
-                                    if (results.length > 0) triggerSearch(newSort);
-                                }}
-                                style={{
-                                    background: `var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 0.75rem center`,
-                                    backgroundSize: '16px',
-                                    border: '1px solid var(--border)',
-                                    borderRadius: 'var(--radius-sm)',
-                                    color: 'var(--text)',
-                                    padding: '0.5rem 2.5rem 0.5rem 1rem',
-                                    fontSize: '0.9rem',
-                                    outline: 'none',
-                                    cursor: 'pointer',
-                                    appearance: 'none',
-                                    minWidth: '220px',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                                }}
-                            >
-                                <option value="rating">⭐ Mejor valoración</option>
-                                <option value="distance">📍 Cercanía a la ubicación</option>
-                                <option value="reviews">🔥 Más populares</option>
-                            </select>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: 'var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                            {results.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((place: any) => (
-                                <div key={place.id} className="restaurant-card-container" style={{ display: 'flex', flexDirection: 'column', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                                    <div className="restaurant-card"
-                                        onClick={() => handleExpandRestaurant(place.id)}
+                        <div className="results-header-info">
+                            <div className="results-title-row">
+                                <h2 className="results-title">Sugerencias para ti</h2>
+                                <div className="sort-select-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <SlidersHorizontal size={14} style={{ color: 'var(--muted)' }} />
+                                    <select
+                                        aria-label="Ordenar resultados"
+                                        value={sortBy}
+                                        onChange={(e) => {
+                                            const newSort = e.target.value as 'rating' | 'distance';
+                                            setSortBy(newSort);
+                                            if (results.length > 0) triggerSearch(newSort);
+                                        }}
+                                        className="sort-select"
                                         style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            padding: '1.5rem',
-                                            background: 'transparent',
-                                            gap: '1.5rem',
-                                            transition: 'all 0.2s ease',
-                                            cursor: 'pointer'
-                                        }}>
-                                        <div style={{
-                                            width: '80px', height: '80px',
-                                            borderRadius: '12px', overflow: 'hidden',
-                                            background: 'var(--surface2)',
-                                            flexShrink: 0,
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                        }}>
+                                            background: `rgba(255, 255, 255, 0.05) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 0.75rem center`,
+                                            backgroundSize: '12px',
+                                        }}
+                                    >
+                                        <option value="rating">Mejor valoración</option>
+                                        <option value="distance">Cercanía</option>
+                                        <option value="reviews">Más populares</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="results-count">{results.length} resultados encontrados</div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            {results.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((place: any, index: number) => (
+                                <div key={place.id}
+                                    className={`suggestion-card ${index === 0 && currentPage === 1 ? 'best-match' : ''}`}
+                                    onClick={() => handleExpandRestaurant(place.id)}>
+
+                                    {index === 0 && currentPage === 1 && (
+                                        <div className="best-match-badge">
+                                            <Star size={14} /> Mejor coincidencia
+                                        </div>
+                                    )}
+
+                                    <div className="card-main-content">
+                                        <div className="card-thumb">
                                             {place.main_photo ? (
-                                                <img src={place.main_photo} alt={place.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <img src={place.main_photo} alt={place.name} />
                                             ) : (
-                                                <span style={{ fontSize: '2rem' }}>🍴</span>
+                                                <span style={{ fontSize: '1.5rem' }}>🍴</span>
                                             )}
                                         </div>
 
-                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text)' }}>{place.name}</div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                                {Array.from({ length: 5 }).map((_, i) => (
-                                                    <span key={`star-${place.id}-${i}`} style={{
-                                                        color: i < Math.floor(place.rating || 0) ? '#ffb400' : 'var(--muted)',
-                                                        fontSize: '0.9rem',
-                                                        opacity: i < Math.floor(place.rating || 0) ? 1 : 0.3
-                                                    }}>
-                                                        ★
-                                                    </span>
-                                                ))}
-                                                <span style={{ fontSize: '0.8rem', color: 'var(--muted)', marginLeft: '0.4rem' }}>
-                                                    {place.rating} ({place.user_ratings_total})
-                                                </span>
+                                        <div className="card-info">
+                                            <div className="card-name">{place.name}</div>
+                                            <div className="card-rating-row">
+                                                <div style={{ display: 'flex', gap: '1px' }}>
+                                                    {Array.from({ length: 5 }).map((_, i) => (
+                                                        <span key={`star-${place.id}-${i}`} style={{
+                                                            color: i < Math.floor(place.rating || 0) ? '#ffb400' : 'var(--muted)',
+                                                            fontSize: '0.8rem',
+                                                            opacity: i < Math.floor(place.rating || 0) ? 1 : 0.3
+                                                        }}>★</span>
+                                                    ))}
+                                                </div>
+                                                <span className="card-rating-val">{place.rating}</span>
+                                                    <span className="card-rating-count">({place.user_ratings_total})</span>
+                                                </div>
+                                                <div className="card-address" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <MapPin size={10} /> {place.address}
+                                                </div>
                                             </div>
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--accent2)', fontWeight: 500 }}>
-                                                {place.types && place.types.length > 0
-                                                    ? place.types[0].replaceAll('_', ' ').replaceAll(/\b\w/g, (l: any) => l.toUpperCase())
-                                                    : 'Restaurante'}
+
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                                <div className={`status-badge ${(place.opening_hours && place.opening_hours.open_now) || place.open_now ? 'status-open' : 'status-closed'}`}>
+                                                    {(place.opening_hours && place.opening_hours.open_now) || place.open_now ? 'Abierto' : 'Cerrado'}
+                                                </div>
                                             </div>
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{place.address}</div>
                                         </div>
-                                        <div style={{
-                                            color: 'var(--muted)',
-                                            fontSize: '1.2rem',
-                                            opacity: 0.5,
-                                            transform: expandedRestaurantId === place.id ? 'rotate(90deg)' : 'none',
-                                            transition: 'transform 0.3s ease'
-                                        }}>›</div>
-                                    </div>
 
                                     {expandedRestaurantId === place.id && (
                                         <div style={{
@@ -967,7 +969,7 @@ const RestaurantRecommendationPage: React.FC = () => {
                             >
                                 Anterior
                             </button>
-                            
+
                             <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: '1rem' }}>
                                 {currentPage}
                             </span>
@@ -1000,7 +1002,7 @@ const RestaurantRecommendationPage: React.FC = () => {
                         `}</style>
                     </div>
                 )}
-            </div>
+            </main>
         </div>
     );
 };

@@ -33,7 +33,7 @@ class RecommendationService:
             "Content-Type": "application/json",
             "X-Goog-Api-Key": self.api_key,
             # Definimos los campos que queremos recibir
-            "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.priceLevel,places.rating,places.userRatingCount,places.types,places.photos,places.googleMapsUri,places.websiteUri,places.regularOpeningHours,places.editorialSummary,places.location,nextPageToken"
+            "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.priceLevel,places.rating,places.userRatingCount,places.types,places.photos,places.googleMapsUri,places.websiteUri,places.regularOpeningHours,places.currentOpeningHours,places.editorialSummary,places.location,nextPageToken"
         }
         
         payload = {
@@ -148,6 +148,7 @@ class RecommendationService:
                 "google_maps_uri": place.get("googleMapsUri"),
                 "website_uri": place.get("websiteUri"),
                 "opening_hours": place.get("regularOpeningHours", {}).get("weekdayDescriptions", []),
+                "open_now": place.get("currentOpeningHours", {}).get("openNow"),
                 "summary": place.get("editorialSummary", {}).get("text", ""),
                 "latitude": place.get("location", {}).get("latitude"),
                 "longitude": place.get("location", {}).get("longitude")
@@ -169,7 +170,7 @@ class RecommendationService:
         headers = {
             "Content-Type": "application/json",
             "X-Goog-Api-Key": self.api_key,
-            "X-Goog-FieldMask": "id,displayName,formattedAddress,priceLevel,rating,userRatingCount,types,photos,googleMapsUri,websiteUri,regularOpeningHours,editorialSummary,location"
+            "X-Goog-FieldMask": "id,displayName,formattedAddress,priceLevel,rating,userRatingCount,types,photos,googleMapsUri,websiteUri,regularOpeningHours,currentOpeningHours,editorialSummary,location"
         }
         
         async with httpx.AsyncClient() as client:

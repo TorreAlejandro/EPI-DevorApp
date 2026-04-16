@@ -13,43 +13,41 @@ import './App.css';
 function App() {
   return (
     <BrowserRouter>
-      <div className="app-container">
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/home" element={
-            <ProtectedRoute>
-              <HomePage />
-            </ProtectedRoute>
-          } />
-          <Route path="/recommend-restaurants" element={
-            <ProtectedRoute>
-              <RestaurantRecommendationPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/history" element={
-            <ProtectedRoute>
-              <HistoryPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/favorites" element={
-            <ProtectedRoute>
-              <FavoritesPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/saved-for-later" element={
-            <ProtectedRoute>
-              <SavedForLaterPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/mis-valoraciones" element={
-            <ProtectedRoute>
-              <ValoracionesPage />
-            </ProtectedRoute>
-          } />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </div>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/home" element={
+          <ProtectedRoute>
+            <HomePage />
+          </ProtectedRoute>
+        } />
+        <Route path="/recommend-restaurants" element={
+          <ProtectedRoute>
+            <RestaurantRecommendationPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/history" element={
+          <ProtectedRoute>
+            <HistoryPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/favorites" element={
+          <ProtectedRoute>
+            <FavoritesPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/saved-for-later" element={
+          <ProtectedRoute>
+            <SavedForLaterPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/mis-valoraciones" element={
+          <ProtectedRoute>
+            <ValoracionesPage />
+          </ProtectedRoute>
+        } />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     </BrowserRouter>
   );
 }

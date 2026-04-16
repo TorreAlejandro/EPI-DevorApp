@@ -1,154 +1,430 @@
-import React from 'react';
-import Autocomplete from "react-google-autocomplete";
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import Autocomplete from 'react-google-autocomplete';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Mail, User, Lock, Eye, EyeOff,
+  MapPin, Navigation, AlertCircle, CheckCircle2, Loader2, ArrowLeft, Search,
+} from 'lucide-react';
 import { useRegister } from '../controllers/hooks/useRegister';
+import { authService } from '../models/api/authService';
+import TopBar from '../components/TopBar';
 
+/* ─── Step progress bar ─────────────────────────────── */
+interface StepBarProps { current: number; total: number; }
+const StepBar: React.FC<StepBarProps> = ({ current, total }) => (
+  <div className="step-bar" aria-label={`Paso ${current} de ${total}`} role="progressbar"
+    aria-valuenow={current} aria-valuemin={1} aria-valuemax={total}>
+    {Array.from({ length: total }).map((_, i) => (
+      <div key={i} className={`step-segment${i < current ? ' active' : ''}`} />
+    ))}
+  </div>
+);
+
+/* ─── RegisterPage ───────────────────────────────────── */
 const RegisterPage: React.FC = () => {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const handleSwitchToLogin = () => navigate('/login');
 
-    const handleSwitchToLogin = () => {
-        navigate('/login');
-    };
+  const { form, handleInputChange, setFieldValue, message, loading, isWaitingVerification, submitRegister } =
+    useRegister(handleSwitchToLogin);
 
-    const {
-        form, handleInputChange, setFieldValue,
-        message, loading, isWaitingVerification, submitRegister
-    } = useRegister(handleSwitchToLogin);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [showPassword, setShowPassword] = useState(false);
+  const [stepError, setStepError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; username?: string }>({});
+  const [checkLoading, setCheckLoading] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsLabel, setGpsLabel] = useState<string | null>(null);
 
-    if (isWaitingVerification) {
-        return (
-            <div className="auth-card">
-                <div className="auth-header" style={{ marginBottom: '1rem' }}>
-                    <div className="auth-logo">✉️</div>
-                    <h1>Verifica tu correo</h1>
-                </div>
+  /* ── Step 1 validation + availability check ── */
+  const handleContinue = async () => {
+    setStepError(null);
+    setFieldErrors({});
 
-                <p style={{ textAlign: 'center', marginBottom: '2rem', color: '#666' }}>
-                    Hemos enviado un enlace de confirmación a <strong>{form.email}</strong>.
-                    <br /><br />
-                    Por favor, revisa tu bandeja de entrada (y la carpeta de spam) y haz clic en el enlace para continuar.
-                </p>
+    // Local validation first (fast, no network)
+    if (!form.email.trim())       return setStepError('El email es obligatorio.');
+    if (!/\S+@\S+\.\S+/.test(form.email)) return setStepError('Introduce un email válido.');
+    if (!form.username.trim())    return setStepError('El nombre de usuario es obligatorio.');
+    if (form.username.length < 3) return setStepError('El usuario debe tener al menos 3 caracteres.');
+    if (!form.password)           return setStepError('La contraseña es obligatoria.');
+    if (form.password.length < 8) return setStepError('La contraseña debe tener al menos 8 caracteres.');
+    if (!form.nombre.trim())      return setStepError('El nombre es obligatorio.');
+    if (!form.apellidos.trim())   return setStepError('Los apellidos son obligatorios.');
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                    <div className="loading-spinner" style={{
-                        width: '40px',
-                        height: '40px',
-                        border: '3px solid #f3f3f3',
-                        borderTop: '3px solid var(--primary-color)',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite'
-                    }} />
-                    <p style={{ fontSize: '0.9rem', color: '#888' }}>Esperando confirmación...</p>
-                </div>
+    // Remote availability check
+    setCheckLoading(true);
+    try {
+      const { email_taken, username_taken } = await authService.checkAvailability(
+        form.email.trim(),
+        form.username.trim()
+      );
 
-                {message && (
-                    <div className={`message ${message.type}`} style={{ marginTop: '2rem' }}>{message.text}</div>
-                )}
-                <style>{`
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                `}</style>
-            </div>
-        );
+      const errs: { email?: string; username?: string } = {};
+      if (email_taken)    errs.email    = 'Este email ya está registrado.';
+      if (username_taken) errs.username = 'Este nombre de usuario ya está en uso.';
+
+      if (Object.keys(errs).length > 0) {
+        setFieldErrors(errs);
+        return;
+      }
+    } catch {
+      // Si la comprobación falla por red, dejamos pasar (el backend lo filtrará)
+    } finally {
+      setCheckLoading(false);
     }
 
-    return (
-        <div className="auth-card">
-            <div className="auth-header">
-                <div className="auth-logo">🍴</div>
-                <h1>Crear cuenta</h1>
-            </div>
+    setStep(2);
+  };
 
-            <form onSubmit={submitRegister} className="auth-form" noValidate>
-                <div className="form-group">
-                    <label htmlFor="reg-email">Email</label>
-                    <input
-                        id="reg-email" name="email" type="email"
-                        placeholder="tu@email.com"
-                        value={form.email} onChange={handleInputChange}
-                        required disabled={loading}
-                    />
-                </div>
-
-                <div className="form-group">
-                    <label htmlFor="reg-username">Nombre de usuario</label>
-                    <input
-                        id="reg-username" name="username" type="text"
-                        value={form.username} onChange={handleInputChange}
-                        required disabled={loading}
-                    />
-                </div>
-
-                <div className="form-group">
-                    <label htmlFor="reg-password">Contraseña</label>
-                    <input
-                        id="reg-password" name="password" type="password"
-                        placeholder="Mínimo 8 caracteres, letras y números"
-                        value={form.password} onChange={handleInputChange}
-                        required disabled={loading}
-                    />
-                </div>
-
-                <div className="form-row">
-                    <div className="form-group">
-                        <label htmlFor="reg-nombre">Nombre</label>
-                        <input
-                            id="reg-nombre" name="nombre" type="text"
-                            value={form.nombre} onChange={handleInputChange}
-                            required disabled={loading}
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="reg-apellidos">Apellidos</label>
-                        <input
-                            id="reg-apellidos" name="apellidos" type="text"
-                            value={form.apellidos} onChange={handleInputChange}
-                            required disabled={loading}
-                        />
-                    </div>
-                </div>
-
-                <div className="form-group">
-                    <label htmlFor="reg-ubicacion">Ubicación preferida</label>
-                    <Autocomplete
-                        id="reg-ubicacion"
-                        apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
-                        onChange={() => {
-                            // Si el usuario escribe algo, invalidamos la selección anterior
-                            setFieldValue('ubicacion', '');
-                        }}
-                        onPlaceSelected={(place) => {
-                            if (place?.formatted_address) {
-                                setFieldValue("ubicacion", place.formatted_address);
-                            }
-                        }}
-                        options={{
-                            types: [],
-                        }}
-                        className="form-control"
-                        placeholder="Busca tu ubicación"
-                        disabled={loading}
-                        defaultValue={form.ubicacion}
-                    />
-                </div>
-
-                <button type="submit" className={`btn-primary${loading ? ' loading' : ''}`} disabled={loading}>
-                    {loading ? '' : 'Crear cuenta'}
-                </button>
-            </form>
-
-            {message && (
-                <div className={`message ${message.type}`}>{message.text}</div>
-            )}
-
-            <div className="auth-footer">
-                ¿Ya tienes cuenta?{' '}
-                <Link to="/login">Inicia sesión</Link>
-            </div>
-        </div>
+  /* ── GPS detection ── */
+  const handleUseGPS = () => {
+    if (!navigator.geolocation) {
+      setStepError('Tu dispositivo no soporta geolocalización.');
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${import.meta.env.VITE_GOOGLE_API_KEY}&language=es`
+          );
+          const data = await res.json();
+          if (data.results?.[0]) {
+            const address = data.results[0].formatted_address;
+            setFieldValue('ubicacion', address);
+            setGpsLabel(address);
+          }
+        } catch {
+          setStepError('No se pudo obtener la dirección. Intenta buscarla manualmente.');
+        } finally {
+          setGpsLoading(false);
+        }
+      },
+      () => {
+        setStepError('Permiso de ubicación denegado. Busca tu ubicación manualmente.');
+        setGpsLoading(false);
+      },
+      { timeout: 10000 }
     );
+  };
+
+  /* ── Password strength ── */
+  const pwStrength = (() => {
+    const p = form.password;
+    if (!p) return 0;
+    let s = 0;
+    if (p.length >= 8)  s++;
+    if (/[A-Z]/.test(p)) s++;
+    if (/[0-9]/.test(p)) s++;
+    if (/[^A-Za-z0-9]/.test(p)) s++;
+    return s; // 0-4
+  })();
+  const pwStrengthLabel = ['', 'Débil', 'Regular', 'Buena', 'Fuerte'][pwStrength];
+  const pwStrengthClass = ['', 'weak', 'fair', 'good', 'strong'][pwStrength];
+
+  /* ═══════════════════════════════════
+     WAITING FOR VERIFICATION
+  ═══════════════════════════════════ */
+  if (isWaitingVerification) {
+    return (
+      <div className="page-screen">
+        <TopBar />
+        <main className="auth-screen-body">
+          <div className="auth-content" style={{ alignItems: 'center', textAlign: 'center' }}>
+            <div className="auth-heading">
+              <h1>Verifica tu correo</h1>
+              <p>
+                Hemos enviado un enlace a{' '}
+                <strong style={{ color: 'var(--text)' }}>{form.email}</strong>.
+                {' '}Revisa tu bandeja de entrada y la carpeta de spam.
+              </p>
+            </div>
+            <Loader2 size={44} strokeWidth={1.5} aria-hidden="true"
+              style={{ color: 'var(--accent)', animation: 'spin 1.2s linear infinite' }} />
+            <p className="text-muted text-sm">Esperando confirmación…</p>
+            {message && (
+              <div className={`message ${message.type}`} role="alert">
+                {message.type === 'error'
+                  ? <AlertCircle size={16} aria-hidden="true" />
+                  : <CheckCircle2 size={16} aria-hidden="true" />}
+                {message.text}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-screen">
+      <TopBar />
+      <main className="auth-screen-body">
+        <div className="auth-content">
+
+          {/* ── Header ── */}
+          <div className="auth-heading">
+            <h1>Crear cuenta</h1>
+            <p>
+              {step === 1
+                ? 'Paso 1 de 2 · Datos de acceso'
+                : 'Paso 2 de 2 · Tu ubicación'}
+            </p>
+            <StepBar current={step} total={2} />
+          </div>
+
+          {/* ════════════════════════
+              STEP 1 — Datos de acceso
+          ════════════════════════ */}
+          {step === 1 && (
+            <>
+              <div className="auth-form">
+                {/* Email */}
+                <div className="form-group">
+                  <label htmlFor="reg-email" className="form-label">Email</label>
+                  <div className="form-input-wrap">
+                    <span className="form-input-icon" aria-hidden="true"><Mail size={18} /></span>
+                    <input
+                      id="reg-email" name="email" type="email"
+                      className={`form-input has-icon-left${fieldErrors.email ? ' input-error' : ''}`}
+                      placeholder="tu@email.com"
+                      autoComplete="email"
+                      value={form.email} onChange={(e) => { handleInputChange(e); setFieldErrors(fe => ({ ...fe, email: undefined })); }}
+                      aria-required="true"
+                      aria-describedby={fieldErrors.email ? 'email-error' : undefined}
+                    />
+                  </div>
+                  {fieldErrors.email && (
+                    <p id="email-error" className="field-error" role="alert">
+                      <AlertCircle size={13} aria-hidden="true" />{fieldErrors.email}
+                    </p>
+                  )}
+                </div>
+
+                {/* Username */}
+                <div className="form-group">
+                  <label htmlFor="reg-username" className="form-label">Nombre de usuario</label>
+                  <div className="form-input-wrap">
+                    <span className="form-input-icon" aria-hidden="true"><User size={18} /></span>
+                    <input
+                      id="reg-username" name="username" type="text"
+                      className={`form-input has-icon-left${fieldErrors.username ? ' input-error' : ''}`}
+                      placeholder="@usuario"
+                      autoComplete="username"
+                      value={form.username} onChange={(e) => { handleInputChange(e); setFieldErrors(fe => ({ ...fe, username: undefined })); }}
+                      aria-required="true"
+                      aria-describedby={fieldErrors.username ? 'username-error' : undefined}
+                    />
+                  </div>
+                  {fieldErrors.username && (
+                    <p id="username-error" className="field-error" role="alert">
+                      <AlertCircle size={13} aria-hidden="true" />{fieldErrors.username}
+                    </p>
+                  )}
+                </div>
+
+                {/* Password */}
+                <div className="form-group">
+                  <label htmlFor="reg-password" className="form-label">Contraseña</label>
+                  <div className="form-input-wrap">
+                    <span className="form-input-icon" aria-hidden="true"><Lock size={18} /></span>
+                    <input
+                      id="reg-password" name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      className="form-input has-icon-left has-icon-right"
+                      placeholder="Mínimo 8 caracteres"
+                      autoComplete="new-password"
+                      value={form.password} onChange={handleInputChange}
+                      aria-required="true"
+                    />
+                    <button
+                      type="button" id="toggle-reg-password-btn"
+                      className="input-action-btn"
+                      onClick={() => setShowPassword(v => !v)}
+                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    >
+                      {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                    </button>
+                  </div>
+
+                  {/* Password strength */}
+                  {form.password && (
+                    <div className="pw-strength" aria-live="polite">
+                      <div className="pw-strength-bar">
+                        {[1, 2, 3, 4].map(n => (
+                          <div key={n} className={`pw-seg${pwStrength >= n ? ` ${pwStrengthClass}` : ''}`} />
+                        ))}
+                      </div>
+                      <span className={`pw-label ${pwStrengthClass}`}>{pwStrengthLabel}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Nombre + Apellidos */}
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="reg-nombre" className="form-label">Nombre</label>
+                    <input
+                      id="reg-nombre" name="nombre" type="text"
+                      className="form-input"
+                      autoComplete="given-name"
+                      value={form.nombre} onChange={handleInputChange}
+                      aria-required="true"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="reg-apellidos" className="form-label">Apellidos</label>
+                    <input
+                      id="reg-apellidos" name="apellidos" type="text"
+                      className="form-input"
+                      autoComplete="family-name"
+                      value={form.apellidos} onChange={handleInputChange}
+                      aria-required="true"
+                    />
+                  </div>
+                </div>
+
+                {/* Step error */}
+                {stepError && (
+                  <div className="message error" role="alert" aria-live="polite">
+                    <AlertCircle size={16} aria-hidden="true" />
+                    {stepError}
+                  </div>
+                )}
+
+                <button
+                  type="button" id="register-continue-btn"
+                  className={`btn-primary${checkLoading ? ' loading' : ''}`}
+                  onClick={handleContinue}
+                  disabled={checkLoading}
+                >
+                  {!checkLoading && 'Continuar'}
+                </button>
+              </div>
+
+              <p className="auth-footer">
+                ¿Ya tienes cuenta?{' '}
+                <Link to="/login" id="go-login-link">Inicia sesión</Link>
+              </p>
+            </>
+          )}
+
+          {/* ════════════════════════
+              STEP 2 — Ubicación
+          ════════════════════════ */}
+          {step === 2 && (
+            <form id="register-form" onSubmit={submitRegister} className="auth-form" noValidate>
+
+              {/* Info card */}
+              <div className="location-info-card">
+                <span className="location-info-icon" aria-hidden="true">
+                  <MapPin size={20} />
+                </span>
+                <div>
+                  <p className="location-info-title">Tu ubicación preferida</p>
+                  <p className="location-info-desc">
+                    Usaremos esta zona para mostrarte restaurantes cercanos. Podrás cambiarla después desde tu perfil.
+                  </p>
+                </div>
+              </div>
+
+              {/* Search + GPS row */}
+              <div className="form-group">
+                <label htmlFor="reg-ubicacion" className="form-label">Busca tu ubicación</label>
+                <div className="location-search-row">
+                  <div className="form-input-wrap" style={{ flex: 1 }}>
+                    <span className="form-input-icon" aria-hidden="true"><Search size={18} /></span>
+                    <Autocomplete
+                      id="reg-ubicacion"
+                      apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
+                      onChange={() => {
+                        setFieldValue('ubicacion', '');
+                        setGpsLabel(null);
+                      }}
+                      onPlaceSelected={(place) => {
+                        if (place?.formatted_address) {
+                          setFieldValue('ubicacion', place.formatted_address);
+                          setGpsLabel(place.formatted_address);
+                        }
+                      }}
+                      options={{ types: [] }}
+                      className="form-input has-icon-left"
+                      placeholder="Ciudad, barrio o dirección..."
+                      defaultValue={gpsLabel ?? form.ubicacion}
+                    />
+                  </div>
+
+                  <button
+                    type="button" id="use-gps-btn"
+                    className={`btn-gps${gpsLoading ? ' loading' : ''}`}
+                    onClick={handleUseGPS}
+                    disabled={gpsLoading}
+                    aria-label="Usar mi ubicación actual"
+                    title="Usar mi ubicación"
+                  >
+                    {gpsLoading
+                      ? <Loader2 size={16} className="spin-icon" aria-hidden="true" />
+                      : <Navigation size={16} aria-hidden="true" />}
+                    <span>Usar mi ubicación</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* GPS detected result */}
+              {gpsLabel && (
+                <div className="location-detected" role="status" aria-live="polite">
+                  <span className="location-detected-icon" aria-hidden="true"><MapPin size={16} /></span>
+                  <div className="location-detected-text">
+                    <span className="location-detected-name">{gpsLabel}</span>
+                    <span className="location-detected-sub">Ubicación detectada automáticamente</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => { setGpsLabel(null); setFieldValue('ubicacion', ''); }}
+                    aria-label="Cambiar ubicación"
+                  >
+                    Cambiar
+                  </button>
+                </div>
+              )}
+
+              {/* API error */}
+              {message && (
+                <div className={`message ${message.type}`} role="alert" aria-live="polite">
+                  {message.type === 'error'
+                    ? <AlertCircle size={16} aria-hidden="true" />
+                    : <CheckCircle2 size={16} aria-hidden="true" />}
+                  {message.text}
+                </div>
+              )}
+
+              <button
+                type="submit" id="register-submit-btn"
+                className={`btn-primary${loading ? ' loading' : ''}`}
+                disabled={loading}
+              >
+                {!loading && 'Crear cuenta'}
+              </button>
+
+              <button
+                type="button" id="register-back-btn"
+                className="btn-back"
+                onClick={() => { setStep(1); setStepError(null); }}
+                style={{ alignSelf: 'center' }}
+              >
+                <ArrowLeft size={16} aria-hidden="true" />
+                Volver
+              </button>
+            </form>
+          )}
+
+        </div>
+      </main>
+    </div>
+  );
 };
 
 export default RegisterPage;
