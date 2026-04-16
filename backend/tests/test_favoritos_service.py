@@ -54,10 +54,14 @@ def test_delete_lista(mock_repo):
     assert result is True
     mock_repo.delete_lista.assert_called_once_with(db_mock, 1, "uid1")
 
+from app.models.entities.restaurante import Restaurante
+
 @patch("app.services.favoritos_service.favoritos_repo")
 def test_get_favoritos(mock_repo):
     db_mock = MagicMock()
-    mock_repo.get_favoritos_by_lista.return_value = [Favorito(id=1, lista_id=1, place_id="place1")]
+    mock_repo.get_favoritos_by_lista.return_value = [
+        Favorito(id=1, lista_id=1, restaurante=Restaurante(place_id="place1"))
+    ]
     
     result = favoritos_service.get_favoritos(db_mock, 1)
     
@@ -69,7 +73,7 @@ def test_get_favoritos(mock_repo):
 def test_add_favorito_success(mock_repo):
     db_mock = MagicMock()
     mock_repo.get_favorito_by_place.return_value = None
-    mock_repo.add_favorito.return_value = Favorito(id=1, lista_id=1, place_id="place1")
+    mock_repo.add_favorito.return_value = Favorito(id=1, lista_id=1, restaurante=Restaurante(place_id="place1"))
     
     result = favoritos_service.add_favorito(db_mock, 1, "place1")
     
@@ -79,7 +83,7 @@ def test_add_favorito_success(mock_repo):
 @patch("app.services.favoritos_service.favoritos_repo")
 def test_add_favorito_duplicate(mock_repo):
     db_mock = MagicMock()
-    mock_repo.get_favorito_by_place.return_value = Favorito(id=1, lista_id=1, place_id="place1")
+    mock_repo.get_favorito_by_place.return_value = Favorito(id=1, lista_id=1, restaurante=Restaurante(place_id="place1"))
     
     with pytest.raises(ValueError, match="Este restaurante ya está en la lista de favoritos."):
         favoritos_service.add_favorito(db_mock, 1, "place1")

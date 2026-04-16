@@ -1,12 +1,5 @@
-"""
-Modelo ORM SQLAlchemy para la tabla `mas_tarde`.
-
-Campos:
-  - id           : clave primaria autoincremental
-  - user_id      : Firebase UID del usuario
-  - place_id     : ID de Google Places del restaurante
-"""
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 from app.infrastructure.database import Base
 
 class MasTarde(Base):
@@ -14,10 +7,17 @@ class MasTarde(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String, nullable=False, index=True)
-    place_id = Column(String, nullable=False)
+    restaurante_id = Column(Integer, ForeignKey("restaurantes.id"), nullable=False, index=True)
+
+    # Relación para acceder fácilmente al place_id
+    restaurante = relationship("Restaurante", lazy="joined")
+
+    @property
+    def place_id(self) -> str:
+        return self.restaurante.place_id if self.restaurante else None
 
     def __repr__(self) -> str:
         return (
             f"<MasTarde id={self.id} user_id={self.user_id!r} "
-            f"place_id={self.place_id!r}>"
+            f"restaurante_id={self.restaurante_id}>"
         )

@@ -3,10 +3,14 @@ from unittest.mock import patch, MagicMock
 from app.services import historial_service
 from app.models.entities.historial import Historial
 
+from app.models.entities.restaurante import Restaurante
+
 @patch("app.services.historial_service.historial_repo")
 def test_get_historial(mock_repo):
     db_mock = MagicMock()
-    mock_repo.get_historial_by_user.return_value = [Historial(id=1, user_id="uid1", place_id="place1")]
+    mock_repo.get_historial_by_user.return_value = [
+        Historial(id=1, user_id="uid1", restaurante=Restaurante(place_id="place1"))
+    ]
     
     result = historial_service.get_historial(db_mock, "uid1")
     
@@ -17,7 +21,9 @@ def test_get_historial(mock_repo):
 @patch("app.services.historial_service.historial_repo")
 def test_add_to_historial(mock_repo):
     db_mock = MagicMock()
-    mock_repo.add_historial_entry.return_value = Historial(id=1, user_id="uid1", place_id="place1")
+    mock_repo.add_historial_entry.return_value = Historial(
+        id=1, user_id="uid1", restaurante=Restaurante(place_id="place1")
+    )
     
     result = historial_service.add_to_historial(db_mock, "uid1", "place1")
     

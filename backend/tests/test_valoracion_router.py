@@ -20,10 +20,13 @@ def dummy_user():
     )
 
 
+from app.models.entities.restaurante import Restaurante
+
+
 @pytest.fixture
 def dummy_valoracion():
     return Valoracion(
-        id=1, user_id="test_uid", place_id="place1",
+        id=1, user_id="test_uid", restaurante=Restaurante(place_id="place1"),
         calidad=5, precio=4, higiene=3, trato=5, comentario="Excelente", me_gustas=0
     )
 

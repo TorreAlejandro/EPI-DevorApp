@@ -1,6 +1,3 @@
-"""
-Repositorio para las tablas `listas_favoritos` y `favoritos`.
-"""
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -8,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models.entities.listas_favoritos import ListaFavoritos
 from app.models.entities.favoritos import Favorito
+from app.infrastructure.repositories import restaurante_repo
 
 
 # ── Listas ───────────────────────────────────────────────────────────────────
@@ -71,17 +69,23 @@ def get_favoritos_by_lista(db: Session, lista_id: int) -> List[Favorito]:
 
 def get_favorito_by_place(db: Session, lista_id: int, place_id: str) -> Optional[Favorito]:
     """Devuelve un favorito por lista y place_id."""
+    restaurante = restaurante_repo.get_restaurante_by_place_id(db, place_id)
+    if not restaurante:
+        return None
+        
     return db.query(Favorito).filter(
         Favorito.lista_id == lista_id,
-        Favorito.place_id == place_id
+        Favorito.restaurante_id == restaurante.id
     ).first()
 
 
 def add_favorito(db: Session, lista_id: int, place_id: str) -> Favorito:
     """Añade un restaurante a una lista de favoritos."""
+    restaurante_id = restaurante_repo.get_or_create_restaurante(db, place_id)
+    
     fav = Favorito(
         lista_id=lista_id,
-        place_id=place_id,
+        restaurante_id=restaurante_id,
     )
     db.add(fav)
     db.commit()
@@ -92,7 +96,6 @@ def add_favorito(db: Session, lista_id: int, place_id: str) -> Favorito:
 def delete_favorito(db: Session, favorito_id: int, user_id: str) -> bool:
     """
     Elimina un favorito verificando que la lista pertenece al usuario.
-    Devuelve True si se eliminó, False si no existía o no tenía permiso.
     """
     fav = db.query(Favorito).filter(Favorito.id == favorito_id).first()
     if not fav:

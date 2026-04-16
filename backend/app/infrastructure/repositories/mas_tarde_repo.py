@@ -1,11 +1,9 @@
-"""
-Repositorio para la tabla `mas_tarde` usando SQLAlchemy.
-"""
 from typing import List
 
 from sqlalchemy.orm import Session
 
 from app.models.entities.mas_tarde import MasTarde
+from app.infrastructure.repositories import restaurante_repo
 
 def get_mas_tarde_by_user(db: Session, user_id: str) -> List[MasTarde]:
     """
@@ -23,14 +21,20 @@ def add_mas_tarde_entry(db: Session, user_id: str, place_id: str) -> MasTarde:
     """
     Inserta una nueva entrada en guardar para más tarde si no existe ya para ese usuario y restaurante.
     """
+    restaurante_id = restaurante_repo.get_or_create_restaurante(db, place_id)
+    
     # Verificamos si ya existe para evitar duplicados exactos
-    existing = db.query(MasTarde).filter(MasTarde.user_id == user_id, MasTarde.place_id == place_id).first()
+    existing = db.query(MasTarde).filter(
+        MasTarde.user_id == user_id, 
+        MasTarde.restaurante_id == restaurante_id
+    ).first()
+    
     if existing:
         return existing
         
     entry = MasTarde(
         user_id=user_id,
-        place_id=place_id,
+        restaurante_id=restaurante_id,
     )
     db.add(entry)
     db.commit()

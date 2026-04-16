@@ -104,6 +104,8 @@ async def test_delete_lista_endpoint_not_found(mock_service, mock_get_uid, dummy
 
     assert response.status_code == 404
 
+from app.models.entities.restaurante import Restaurante
+
 @pytest.mark.asyncio
 @patch("app.presentation.routers.favoritos_router._get_uid")
 @patch("app.presentation.routers.favoritos_router.favoritos_service")
@@ -111,7 +113,9 @@ async def test_delete_lista_endpoint_not_found(mock_service, mock_get_uid, dummy
 async def test_get_lista_detalle_endpoint(mock_rec_service, mock_fav_service, mock_get_uid, dummy_user):
     mock_get_uid.return_value = "test_uid"
     mock_fav_service.get_lista_by_id.return_value = ListaFavoritos(id=1, user_id="test_uid", nombre="Fav1")
-    mock_fav_service.get_favoritos.return_value = [Favorito(id=1, lista_id=1, place_id="place1")]
+    mock_fav_service.get_favoritos.return_value = [
+        Favorito(id=1, lista_id=1, restaurante=Restaurante(place_id="place1"))
+    ]
     mock_rec_service.get_place_details = AsyncMock(return_value={"id": "place1", "name": "Restaurante 1"})
 
     app.dependency_overrides[get_current_user] = lambda: dummy_user
@@ -134,7 +138,7 @@ async def test_get_lista_detalle_endpoint(mock_rec_service, mock_fav_service, mo
 async def test_add_favorito_endpoint_success(mock_rec_service, mock_fav_service, mock_get_uid, dummy_user):
     mock_get_uid.return_value = "test_uid"
     mock_fav_service.get_lista_by_id.return_value = ListaFavoritos(id=1, user_id="test_uid", nombre="Fav1")
-    mock_fav_service.add_favorito.return_value = Favorito(id=1, lista_id=1, place_id="place1")
+    mock_fav_service.add_favorito.return_value = Favorito(id=1, lista_id=1, restaurante=Restaurante(place_id="place1"))
     mock_rec_service.get_place_details = AsyncMock(return_value={"id": "place1", "name": "Restaurante 1"})
 
     app.dependency_overrides[get_current_user] = lambda: dummy_user

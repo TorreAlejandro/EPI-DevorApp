@@ -18,13 +18,17 @@ def dummy_user():
         ubicacion="Madrid"
     )
 
+from app.models.entities.restaurante import Restaurante
+
 @pytest.mark.asyncio
 @patch("app.presentation.routers.historial_router._get_uid")
 @patch("app.presentation.routers.historial_router.historial_service")
 @patch("app.services.recommendation_service.recommendation_service")
 async def test_get_historial_endpoint(mock_rec_service, mock_hist_service, mock_get_uid, dummy_user):
     mock_get_uid.return_value = "test_uid"
-    mock_hist_service.get_historial.return_value = [Historial(id=1, user_id="test_uid", place_id="place1", fecha_acceso=datetime.datetime(2026,1,1))]
+    mock_hist_service.get_historial.return_value = [
+        Historial(id=1, user_id="test_uid", restaurante=Restaurante(place_id="place1"), fecha_acceso=datetime.datetime(2026,1,1))
+    ]
     mock_rec_service.get_place_details = AsyncMock(return_value={"id": "place1", "name": "Restaurante 1"})
 
     app.dependency_overrides[get_current_user] = lambda: dummy_user
@@ -46,7 +50,9 @@ async def test_get_historial_endpoint(mock_rec_service, mock_hist_service, mock_
 @patch("app.services.recommendation_service.recommendation_service")
 async def test_add_to_historial_endpoint(mock_rec_service, mock_hist_service, mock_get_uid, dummy_user):
     mock_get_uid.return_value = "test_uid"
-    mock_hist_service.add_to_historial.return_value = Historial(id=1, user_id="test_uid", place_id="place1", fecha_acceso=datetime.datetime(2026,1,1))
+    mock_hist_service.add_to_historial.return_value = Historial(
+        id=1, user_id="test_uid", restaurante=Restaurante(place_id="place1"), fecha_acceso=datetime.datetime(2026,1,1)
+    )
     mock_rec_service.get_place_details = AsyncMock(return_value={"id": "place1", "name": "Restaurante 1"})
 
     app.dependency_overrides[get_current_user] = lambda: dummy_user

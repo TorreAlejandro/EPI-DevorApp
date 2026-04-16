@@ -2,12 +2,16 @@ from sqlalchemy.orm import Session
 from typing import List, Set
 from app.models.entities.valoracion import Valoracion
 from app.models.entities.valoracion_like import LikeValoracion
+from app.models.entities.restaurante import Restaurante
 from app.models.dtos.valoracion_dto import ValoracionCreate
+from app.infrastructure.repositories import restaurante_repo
 
 def crear_o_actualizar_valoracion(db: Session, user_id: str, data: ValoracionCreate) -> Valoracion:
+    restaurante_id = restaurante_repo.get_or_create_restaurante(db, data.place_id)
+    
     valoracion = db.query(Valoracion).filter(
         Valoracion.user_id == user_id,
-        Valoracion.place_id == data.place_id
+        Valoracion.restaurante_id == restaurante_id
     ).first()
 
     if valoracion:
@@ -19,7 +23,7 @@ def crear_o_actualizar_valoracion(db: Session, user_id: str, data: ValoracionCre
     else:
         valoracion = Valoracion(
             user_id=user_id,
-            place_id=data.place_id,
+            restaurante_id=restaurante_id,
             calidad=data.calidad,
             precio=data.precio,
             higiene=data.higiene,
@@ -39,15 +43,23 @@ def obtener_todas_las_valoraciones_usuario(db: Session, user_id: str) -> List[Va
     ).order_by(Valoracion.id.desc()).all()
 
 def obtener_valoracion_usuario_por_place_id(db: Session, user_id: str, place_id: str) -> Valoracion | None:
+    restaurante = restaurante_repo.get_restaurante_by_place_id(db, place_id)
+    if not restaurante:
+        return None
+        
     return db.query(Valoracion).filter(
         Valoracion.user_id == user_id,
-        Valoracion.place_id == place_id
+        Valoracion.restaurante_id == restaurante.id
     ).first()
 
 def eliminar_valoracion(db: Session, user_id: str, place_id: str) -> bool:
+    restaurante = restaurante_repo.get_restaurante_by_place_id(db, place_id)
+    if not restaurante:
+        return False
+        
     valoracion = db.query(Valoracion).filter(
         Valoracion.user_id == user_id,
-        Valoracion.place_id == place_id
+        Valoracion.restaurante_id == restaurante.id
     ).first()
     
     if valoracion:
@@ -58,8 +70,12 @@ def eliminar_valoracion(db: Session, user_id: str, place_id: str) -> bool:
 
 def obtener_valoraciones_por_place_id(db: Session, place_id: str) -> List[Valoracion]:
     """Devuelve todas las reseñas de un restaurante ordenadas por me_gustas desc."""
+    restaurante = restaurante_repo.get_restaurante_by_place_id(db, place_id)
+    if not restaurante:
+        return []
+        
     return db.query(Valoracion).filter(
-        Valoracion.place_id == place_id
+        Valoracion.restaurante_id == restaurante.id
     ).order_by(Valoracion.me_gustas.desc(), Valoracion.id.desc()).all()
 
 def alternar_me_gusta(db: Session, user_id: str, valoracion_id: int) -> Valoracion | None:
