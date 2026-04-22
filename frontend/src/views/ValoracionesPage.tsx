@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     MessageSquare, Star, Trash2, Edit3, ChevronDown, ChevronRight, 
-    UtensilsCrossed, ArrowLeft, X
+    UtensilsCrossed, ArrowLeft, X, HelpCircle, Heart, DollarSign, Home, User, ChevronLeft
 } from 'lucide-react';
 import { valoracionesService } from '../models/api/valoracionesService';
 import type { ValoracionDetailedResponse } from '../models/api/valoracionesService';
@@ -23,6 +23,21 @@ const ValoracionesPage: React.FC = () => {
     const [ratingVal, setRatingVal] = useState({ calidad: 0, precio: 0, higiene: 0, trato: 0 });
     const [ratingComment, setRatingComment] = useState('');
     const [modalLoading, setModalLoading] = useState(false);
+    const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+
+    const ASPECT_DESCRIPTIONS: Record<string, string> = {
+        calidad: "Evalúa la frescura de los ingredientes y el sabor de los platos.",
+        precio: "¿Te pareció justa la cuenta en relación a la calidad y cantidad?",
+        higiene: "Valora la limpieza de la mesa, los cubiertos y el local en general.",
+        trato: "Amabilidad, atención y rapidez del personal del establecimiento."
+    };
+
+    const ASPECT_CONFIG: Record<string, { icon: React.FC<any>, class: string }> = {
+        calidad: { icon: Heart, class: 'calidad' },
+        precio: { icon: DollarSign, class: 'precio' },
+        higiene: { icon: Home, class: 'higiene' },
+        trato: { icon: User, class: 'trato' }
+    };
 
     useEffect(() => {
         const fetchValoraciones = async () => {
@@ -249,65 +264,95 @@ const ValoracionesPage: React.FC = () => {
                 )}
             </main>
 
-            {/* Modal para valorar restaurante */}
+            {/* Modal Premium para valorar restaurante */}
             {isRatingModalOpen && selectedEntryForRating && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '1rem', backdropFilter: 'blur(8px)', background: 'rgba(0,0,0,0.4)',
-                    animation: 'fadeIn 0.2s ease'
-                }}>
-                    <div style={{
-                        background: 'var(--surface)', maxWidth: '400px', width: '100%',
-                        borderRadius: 'var(--radius-lg)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-                        border: '1px solid var(--border)', overflow: 'hidden', animation: 'scaleUp 0.2s ease'
-                    }}>
-                        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)', background: 'var(--surface-2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Editar reseña de {selectedEntryForRating.restaurant?.name || 'Restaurante'}</h3>
-                            <button onClick={() => setIsRatingModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', fontSize: '1.2rem' }}>
-                                <X size={20} />
-                            </button>
-                        </div>
+                <div className="valuation-overlay">
+                <TopBar
+                    showMenu={false}
+                    leftSlot={
+                        <button className="btn-nav-back" onClick={() => setIsRatingModalOpen(false)}>
+                            <ChevronLeft size={20} />
+                            <span>Volver</span>
+                        </button>
+                    }
+                />
 
-                        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {['calidad', 'precio', 'higiene', 'trato'].map((aspect) => (
-                                <div key={aspect} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>{aspect}</span>
-                                    <div style={{ display: 'flex', gap: '0.3rem' }}>
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                            <Star 
-                                                key={star}
-                                                size={24}
-                                                fill={star <= (ratingVal as any)[aspect] ? "#ffb400" : "transparent"}
-                                                color={star <= (ratingVal as any)[aspect] ? "#ffb400" : "var(--muted)"}
-                                                onClick={() => setRatingVal({ ...ratingVal, [aspect]: star })}
-                                                style={{ cursor: 'pointer', opacity: star <= (ratingVal as any)[aspect] ? 1 : 0.3, transition: 'all 0.2s ease' }}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-
-                            <div style={{ marginTop: '0.5rem' }}>
-                                <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.5rem', display: 'block' }}>Tu opinión</label>
-                                <textarea
-                                    value={ratingComment}
-                                    onChange={(e) => setRatingComment(e.target.value)}
-                                    placeholder="¿Qué te ha parecido?"
-                                    rows={3}
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', resize: 'none', fontFamily: 'inherit' }}
-                                />
+                    <div className="valuation-content">
+                        <div className="valuation-restaurant-info">
+                            <div className="valuation-restaurant-icon">
+                                <UtensilsCrossed size={28} />
                             </div>
-
-                            <button
-                                onClick={handleRatingSubmit}
-                                disabled={modalLoading || Object.values(ratingVal).includes(0)}
-                                className="btn-primary"
-                                style={{ marginTop: '0.5rem', width: '100%', opacity: Object.values(ratingVal).includes(0) ? 0.5 : 1 }}
-                            >
-                                {modalLoading ? 'Guardando...' : 'Guardar cambios'}
-                            </button>
+                            <div className="valuation-restaurant-details">
+                                <h3>{selectedEntryForRating.restaurant?.name || 'Restaurante'}</h3>
+                                <p>Tu valoración sobre este restaurante</p>
+                            </div>
                         </div>
+
+                        <div className="aspects-card">
+                            {['calidad', 'precio', 'higiene', 'trato'].map((aspect) => {
+                                const config = ASPECT_CONFIG[aspect];
+                                const IconComp = config.icon;
+                                
+                                return (
+                                    <div key={aspect} className="aspect-row-premium">
+                                        <div className="aspect-row-left">
+                                            <div className={`aspect-icon-box ${config.class}`}>
+                                                <IconComp size={20} />
+                                            </div>
+                                            <div className="aspect-info-premium">
+                                                <div 
+                                                    className="rating-label-with-help"
+                                                    onClick={() => setActiveTooltip(activeTooltip === aspect ? null : aspect)}
+                                                >
+                                                    <span className="aspect-name-premium" style={{ textTransform: 'capitalize', marginRight: '0.4rem' }}>
+                                                        {aspect}
+                                                    </span>
+                                                    <HelpCircle size={12} style={{ color: 'var(--muted)', opacity: 0.6 }} />
+                                                    
+                                                    {activeTooltip === aspect && (
+                                                        <div className="tooltip-bocadillo">
+                                                            {ASPECT_DESCRIPTIONS[aspect]}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <Star 
+                                                    key={star}
+                                                    size={22}
+                                                    fill={star <= (ratingVal as any)[aspect] ? "#ffb400" : "transparent"}
+                                                    color={star <= (ratingVal as any)[aspect] ? "#ffb400" : "var(--muted)"}
+                                                    onClick={() => setRatingVal({ ...ratingVal, [aspect]: star })}
+                                                    style={{ cursor: 'pointer', transition: 'all 0.2s ease', opacity: star <= (ratingVal as any)[aspect] ? 1 : 0.8 }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="comment-section-premium">
+                            <label className="comment-label-premium">Comentario (opcional)</label>
+                            <textarea
+                                className="textarea-premium"
+                                value={ratingComment}
+                                onChange={(e) => setRatingComment(e.target.value)}
+                                placeholder="¿Qué te ha parecido?"
+                                rows={4}
+                            />
+                        </div>
+
+                        <button
+                            onClick={handleRatingSubmit}
+                            disabled={modalLoading || Object.values(ratingVal).includes(0)}
+                            className={`btn-submit-valuation ${!Object.values(ratingVal).includes(0) ? 'active' : ''}`}
+                        >
+                            {modalLoading ? 'Guardando...' : 'Enviar valoración'}
+                        </button>
                     </div>
                 </div>
             )}

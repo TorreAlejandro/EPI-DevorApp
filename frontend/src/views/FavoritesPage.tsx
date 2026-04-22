@@ -415,7 +415,7 @@ const FavoritesPage: React.FC = () => {
     const filteredFavoritos = useMemo(() => {
         if (!searchTerm.trim()) return favoritos;
         const lowSearch = searchTerm.toLowerCase();
-        return favoritos.filter(fav => 
+        return favoritos.filter(fav =>
             fav.restaurant.name.toLowerCase().includes(lowSearch) ||
             fav.restaurant.address.toLowerCase().includes(lowSearch)
         );
@@ -423,256 +423,238 @@ const FavoritesPage: React.FC = () => {
 
     return (
         <div className="page-screen">
-            {!selectedEntryForDetail && <TopBar showMenu={true} />}
-
-            <main className="home-body" style={{ padding: '0 var(--space-5) var(--space-8)' }}>
-                {!selectedList ? (
-                    // ── OVERVIEW VIEW (GRID OF LISTS) ──
-                    <div style={{ animation: 'fadeIn 0.3s ease' }}>
-                        {/* Header */}
-                        <div style={{ paddingTop: 'var(--space-6)', textAlign: 'center', marginBottom: '2rem' }}>
-                            <div style={{
-                                width: 64, height: 64, borderRadius: 18,
-                                background: 'linear-gradient(135deg, #b07d3a, #d4a045)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                margin: '0 auto 1rem', boxShadow: '0 8px 24px rgba(176,125,58,0.35)',
+            {/* ── CONDITIONAL TOPBAR AND CONTENT ── */}
+            {selectedEntryForDetail ? (
+                <RestaurantDetailView
+                    restaurant={selectedEntryForDetail.restaurant as any}
+                    onBack={() => navigate(-1)}
+                    subtitle={`En lista: ${selectedList?.nombre}`}
+                    actions={
+                        <div className="detail-actions-column">
+                            <button className="btn-detail-main" onClick={async () => {
+                                try {
+                                    await historialService.addToHistorial(selectedEntryForDetail.place_id);
+                                    showNotification(`Has seleccionado ${selectedEntryForDetail.restaurant.name}`, 'success');
+                                    navigate('/home');
+                                } catch (err: any) {
+                                    showNotification('Error al seleccionar: ' + err.message, 'error');
+                                }
                             }}>
-                                <Heart size={28} color="white" />
-                            </div>
-                            <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800 }}>Mis favoritos</h1>
-                            <p style={{ margin: '0.4rem 0 0', fontSize: '0.95rem', color: 'var(--muted)' }}>
-                                Tus listas de restaurantes favoritos
-                            </p>
+                                <UtensilsCrossed size={18} /> Volver a seleccionar
+                            </button>
+                            <button className="btn-detail-outline danger" onClick={async () => {
+                                const confirmed = await showConfirm(`¿Quitar ${selectedEntryForDetail.restaurant.name} de favoritos?`, 'Quitar de favoritos', true);
+                                if (confirmed) {
+                                    try {
+                                        await favoritosService.deleteFavorito(selectedEntryForDetail.id);
+                                        showNotification(`${selectedEntryForDetail.restaurant.name} quitado de favoritos`, 'success');
+                                        setFavoritos(prev => prev.filter(item => item.id !== selectedEntryForDetail.id));
+                                        setSearchParams({ list: selectedList?.id.toString() || '' });
+                                    } catch (err: any) {
+                                        showNotification('Error: ' + err.message, 'error');
+                                    }
+                                }
+                            }}>
+                                <X size={16} /> Quitar de la lista
+                            </button>
                         </div>
+                    }
+                />
+            ) : (
+                <>
+                    {selectedList ? (
+                        <TopBar
+                            showMenu={false}
+                            leftSlot={
+                                <button className="btn-nav-back" onClick={() => navigate(-1)}>
+                                    <ChevronLeft size={20} /> Mis listas
+                                </button>
+                            }
+                        />
+                    ) : (
+                        <TopBar showMenu={true} />
+                    )}
 
-                        {loading ? (
-                            <div style={{ textAlign: 'center', padding: '3rem' }}>
-                                <div className="loading-spinner" style={{ border: '4px solid var(--border)', borderTop: '4px solid var(--accent)', borderRadius: '50%', width: 30, height: 30, animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
-                                <p style={{ color: 'var(--muted)' }}>Cargando tus listas...</p>
-                            </div>
-                        ) : error ? (
-                            <div className="message error">{error}</div>
-                        ) : (
-                            <>
-                                {/* Count + New list */}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                                    <span style={{ fontSize: 'var(--font-sm)', color: 'var(--muted)', fontWeight: 500 }}>
-                                        {lists.length} {lists.length === 1 ? 'lista' : 'listas'}
-                                    </span>
-                                    <button
-                                        onClick={() => setShowNewModal(true)}
-                                        style={{
-                                            display: 'flex', alignItems: 'center', gap: 6,
-                                            padding: '10px 18px',
-                                            background: 'var(--accent)', color: 'white',
-                                            border: 'none', borderRadius: 'var(--radius-lg)',
-                                            fontWeight: 700, fontSize: 'var(--font-sm)',
-                                            cursor: 'pointer',
-                                            boxShadow: '0 4px 14px rgba(var(--accent-rgb), 0.4)',
-                                            transition: 'all 0.2s ease',
-                                        }}
-                                    >
-                                        <Plus size={16} /> Nueva lista
-                                    </button>
+                    <main className="home-body" style={{ padding: '0 var(--space-5) var(--space-8)' }}>
+                        {!selectedList ? (
+                            // ── OVERVIEW VIEW (GRID OF LISTS) ──
+                            <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                                {/* Header */}
+                                <div style={{ paddingTop: 'var(--space-6)', textAlign: 'center', marginBottom: '2rem' }}>
+                                    <div style={{
+                                        width: 64, height: 64, borderRadius: 18,
+                                        background: 'linear-gradient(135deg, #b07d3a, #d4a045)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        margin: '0 auto 1rem', boxShadow: '0 8px 24px rgba(176,125,58,0.35)',
+                                    }}>
+                                        <Heart size={28} color="white" />
+                                    </div>
+                                    <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800 }}>Mis favoritos</h1>
+                                    <p style={{ margin: '0.4rem 0 0', fontSize: '0.95rem', color: 'var(--muted)' }}>
+                                        Tus listas de restaurantes favoritos
+                                    </p>
                                 </div>
 
-                                {lists.length === 0 ? (
-                                    <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--muted)' }}>
-                                        <Heart size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
-                                        <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Aún no tienes listas</p>
-                                        <p style={{ fontSize: 'var(--font-sm)' }}>Crea tu primera lista para guardar restaurantes favoritos</p>
+                                {loading ? (
+                                    <div style={{ textAlign: 'center', padding: '3rem' }}>
+                                        <div className="loading-spinner" style={{ border: '4px solid var(--border)', borderTop: '4px solid var(--accent)', borderRadius: '50%', width: 30, height: 30, animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
+                                        <p style={{ color: 'var(--muted)' }}>Cargando tus listas...</p>
                                     </div>
+                                ) : error ? (
+                                    <div className="message error">{error}</div>
                                 ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                        {lists.map(list => (
-                                            <div
-                                                key={list.id}
-                                                className="fav-list-card"
-                                                onClick={() => setSearchParams({ list: list.id.toString() })}
+                                    <>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                                            <span style={{ fontSize: 'var(--font-sm)', color: 'var(--muted)', fontWeight: 500 }}>
+                                                {lists.length} {lists.length === 1 ? 'lista' : 'listas'}
+                                            </span>
+                                            <button
+                                                onClick={() => setShowNewModal(true)}
+                                                style={{
+                                                    display: 'flex', alignItems: 'center', gap: 6,
+                                                    padding: '10px 18px',
+                                                    background: 'var(--accent)', color: 'white',
+                                                    border: 'none', borderRadius: 'var(--radius-lg)',
+                                                    fontWeight: 700, fontSize: 'var(--font-sm)',
+                                                    cursor: 'pointer',
+                                                    boxShadow: '0 4px 14px rgba(var(--accent-rgb), 0.4)',
+                                                    transition: 'all 0.2s ease',
+                                                }}
                                             >
-                                                {/* Icon box */}
-                                                <div className="fav-icon-box" style={{ background: getIconColor(list.icono || 'Heart') }}>
-                                                    {renderIcon(list.icono || 'Heart', 22)}
-                                                </div>
+                                                <Plus size={16} /> Nueva lista
+                                            </button>
+                                        </div>
 
-                                                {/* Info */}
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                        {list.nombre}
-                                                    </div>
-                                                    <div style={{ fontSize: 'var(--font-xs)', color: 'var(--muted)', marginTop: 2 }}>
-                                                        Toca para ver restaurantes
-                                                    </div>
-                                                </div>
-
-                                                {/* Menu */}
-                                                <ListMenu
-                                                    onRename={() => handleRename(list)}
-                                                    onDelete={() => handleDelete(list)}
-                                                />
+                                        {lists.length === 0 ? (
+                                            <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--muted)' }}>
+                                                <Heart size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                                                <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Aún no tienes listas</p>
+                                                <p style={{ fontSize: 'var(--font-sm)' }}>Crea tu primera lista para guardar restaurantes favoritos</p>
                                             </div>
-                                        ))}
-                                    </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                {lists.map(list => (
+                                                    <div
+                                                        key={list.id}
+                                                        className="fav-list-card"
+                                                        onClick={() => setSearchParams({ list: list.id.toString() })}
+                                                    >
+                                                        <div className="fav-icon-box" style={{ background: getIconColor(list.icono || 'Heart') }}>
+                                                            {renderIcon(list.icono || 'Heart', 22)}
+                                                        </div>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                {list.nombre}
+                                                            </div>
+                                                            <div style={{ fontSize: 'var(--font-xs)', color: 'var(--muted)', marginTop: 2 }}>
+                                                                Toca para ver restaurantes
+                                                            </div>
+                                                        </div>
+                                                        <ListMenu
+                                                            onRename={() => handleRename(list)}
+                                                            onDelete={() => handleDelete(list)}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </>
                                 )}
-                            </>
-                        )}
-                    </div>
-                ) : (
-                    // ── DETAIL VIEW (NESTED SPA) ──
-                    selectedEntryForDetail ? (
-                        <div className="fav-detail-view" style={{ paddingTop: '0' }}>
-                            <RestaurantDetailView
-                                restaurant={selectedEntryForDetail.restaurant as any}
-                                onBack={() => navigate(-1)}
-                                subtitle={`En lista: ${selectedList.nombre}`}
-                                actions={
-                                    <div className="detail-actions-column">
-                                        <button className="btn-detail-main" onClick={async () => {
-                                            try {
-                                                await historialService.addToHistorial(selectedEntryForDetail.place_id);
-                                                showNotification(`Has seleccionado ${selectedEntryForDetail.restaurant.name}`, 'success');
-                                                navigate('/home');
-                                            } catch (err: any) {
-                                                showNotification('Error al seleccionar: ' + err.message, 'error');
-                                            }
-                                        }}>
-                                            <UtensilsCrossed size={18} /> Volver a seleccionar
-                                        </button>
-                                        <button className="btn-detail-outline danger" onClick={async () => {
-                                            const confirmed = await showConfirm(`¿Quitar ${selectedEntryForDetail.restaurant.name} de favoritos?`, 'Quitar de favoritos', true);
-                                            if (confirmed) {
-                                                try {
-                                                    await favoritosService.deleteFavorito(selectedEntryForDetail.id);
-                                                    showNotification(`${selectedEntryForDetail.restaurant.name} quitado de favoritos`, 'success');
-                                                    setFavoritos(prev => prev.filter(item => item.id !== selectedEntryForDetail.id));
-                                                    setSearchParams({ list: selectedList.id.toString() });
-                                                } catch (err: any) {
-                                                    showNotification('Error: ' + err.message, 'error');
-                                                }
-                                            }
-                                        }}>
-                                            <X size={16} /> Quitar de la lista
-                                        </button>
-                                    </div>
-                                }
-                            />
-                        </div>
-                    ) : (
-                    <div className="fav-detail-view">
-                        {/* Detail Header */}
-                        <div className="fav-detail-header">
-                            <button className="back-link" onClick={() => navigate(-1)}>
-                                <ChevronLeft size={20} /> Mis listas
-                            </button>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <span style={{ fontSize: 'var(--font-sm)', color: 'var(--muted)', fontWeight: 600 }}>
-                                    {favoritos.length} {favoritos.length === 1 ? 'restaurante' : 'restaurantes'}
-                                </span>
-                                <ListMenu 
-                                    onRename={() => handleRename(selectedList)} 
-                                    onDelete={() => handleDelete(selectedList)} 
-                                />
-                            </div>
-                        </div>
-
-                        {/* Title Row */}
-                        <div className="fav-detail-title-row">
-                            <div className="fav-large-icon" style={{ background: getIconColor(selectedList.icono || 'Heart') }}>
-                                {renderIcon(selectedList.icono || 'Heart', 28)}
-                            </div>
-                            <div className="fav-title-info">
-                                <h2>{selectedList.nombre}</h2>
-                                <p>{favoritos.length} restaurantes guardados</p>
-                            </div>
-                        </div>
-
-                        {/* Search Bar */}
-                        <div className="internal-search-box">
-                            <Search className="search-icon" size={18} />
-                            <input 
-                                type="text" 
-                                placeholder="Buscar en esta lista..." 
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-
-                        {/* Content */}
-                        {modalLoading ? (
-                            <div style={{ textAlign: 'center', padding: '3rem' }}>
-                                <div className="loading-spinner" style={{ border: '4px solid var(--border)', borderTop: '4px solid var(--accent)', borderRadius: '50%', width: 24, height: 24, animation: 'spin 1s linear infinite', margin: '0 auto' }} />
-                            </div>
-                        ) : filteredFavoritos.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>
-                                {searchTerm ? <Search size={40} style={{ opacity: 0.1, marginBottom: '1rem' }} /> : <Heart size={40} style={{ opacity: 0.1, marginBottom: '1rem' }} />}
-                                <p>{searchTerm ? 'No hay resultados para tu búsqueda' : 'Esta lista está vacía'}</p>
                             </div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                {filteredFavoritos.map((fav) => {
-                                    const r = fav.restaurant;
-                                    return (
-                                        <div key={fav.id} style={{ marginBottom: '0.75rem' }}>
-                                            <div 
-                                                className="restaurant-compact-card"
-                                                onClick={() => setSearchParams({ list: selectedList.id.toString(), detail: r.id.toString() })}
-                                            >
-                                                {/* Left Icon */}
-                                                <div className="compact-img-box">
-                                                    {r.main_photo ? (
-                                                        <img src={r.main_photo} alt={r.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    ) : (
-                                                        <UtensilsCrossed size={20} style={{ opacity: 0.3 }} />
-                                                    )}
-                                                </div>
+                            // ── LIST DETAIL VIEW ──
+                            <div className="fav-detail-view">
+                                <div className="fav-detail-title-row">
+                                    <div className="fav-large-icon" style={{ background: getIconColor(selectedList.icono || 'Heart') }}>
+                                        {renderIcon(selectedList.icono || 'Heart', 28)}
+                                    </div>
+                                    <div className="fav-title-info">
+                                        <h2>{selectedList.nombre}</h2>
+                                        <p>{favoritos.length} restaurantes guardados</p>
+                                    </div>
+                                </div>
 
-                                                {/* Center Info */}
-                                                <div className="compact-info">
-                                                    <div className="compact-name">{r.name}</div>
-                                                    <div className="compact-meta">
-                                                        <div className="compact-rating">
-                                                            <Star size={12} fill="currentColor" /> {r.rating}
+                                <div className="internal-search-box">
+                                    <Search className="search-icon" size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar en esta lista..."
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+
+                                {modalLoading ? (
+                                    <div style={{ textAlign: 'center', padding: '3rem' }}>
+                                        <div className="loading-spinner" style={{ border: '4px solid var(--border)', borderTop: '4px solid var(--accent)', borderRadius: '50%', width: 24, height: 24, animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+                                    </div>
+                                ) : filteredFavoritos.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>
+                                        {searchTerm ? <Search size={40} style={{ opacity: 0.1, marginBottom: '1rem' }} /> : <Heart size={40} style={{ opacity: 0.1, marginBottom: '1rem' }} />}
+                                        <p>{searchTerm ? 'No hay resultados para tu búsqueda' : 'Esta lista está vacía'}</p>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        {filteredFavoritos.map((fav) => {
+                                            const r = fav.restaurant;
+                                            return (
+                                                <div key={fav.id} style={{ marginBottom: '0.75rem' }}>
+                                                    <div
+                                                        className="restaurant-compact-card"
+                                                        onClick={() => setSearchParams({ list: selectedList.id.toString(), detail: r.id.toString() })}
+                                                    >
+                                                        <div className="compact-img-box">
+                                                            {r.main_photo ? (
+                                                                <img src={r.main_photo} alt={r.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            ) : (
+                                                                <UtensilsCrossed size={20} style={{ opacity: 0.3 }} />
+                                                            )}
                                                         </div>
-                                                        <span>({r.user_ratings_total})</span>
-                                                        {r.types && r.types[0] && <span>• {r.types[0].charAt(0).toUpperCase() + r.types[0].slice(1)}</span>}
+                                                        <div className="compact-info">
+                                                            <div className="compact-name">{r.name}</div>
+                                                            <div className="compact-meta">
+                                                                <div className="compact-rating">
+                                                                    <Star size={12} fill="currentColor" /> {r.rating}
+                                                                </div>
+                                                                <span>({r.user_ratings_total})</span>
+                                                                {r.types && r.types[0] && <span>• {r.types[0].charAt(0).toUpperCase() + r.types[0].slice(1)}</span>}
+                                                            </div>
+                                                            <div className="compact-address">{r.address}</div>
+                                                        </div>
+                                                        <ItemMenu
+                                                            onDelete={async () => {
+                                                                const confirmed = await showConfirm(`¿Quitar ${r.name} de favoritos?`, 'Quitar de favoritos', true);
+                                                                if (!confirmed) return;
+                                                                try {
+                                                                    await favoritosService.deleteFavorito(fav.id);
+                                                                    showNotification(`${r.name} quitado de favoritos`, 'success');
+                                                                    setFavoritos(prev => prev.filter(item => item.id !== fav.id));
+                                                                } catch (err: any) {
+                                                                    showNotification('Error: ' + err.message, 'error');
+                                                                }
+                                                            }}
+                                                            onHistory={async () => {
+                                                                try {
+                                                                    await historialService.addToHistorial(fav.place_id);
+                                                                    showNotification(`¡Has vuelto a elegir ${r.name}!`, 'success');
+                                                                    navigate('/home');
+                                                                } catch (err: any) {
+                                                                    showNotification('Error: ' + err.message, 'error');
+                                                                }
+                                                            }}
+                                                            onDetails={() => setSearchParams({ list: selectedList.id.toString(), detail: r.id.toString() })}
+                                                        />
                                                     </div>
-                                                    <div className="compact-address">{r.address}</div>
                                                 </div>
-
-                                                {/* Right Action */}
-                                                <ItemMenu 
-                                                    onDelete={async () => {
-                                                        const confirmed = await showConfirm(`¿Quitar ${r.name} de favoritos?`, 'Quitar de favoritos', true);
-                                                        if (!confirmed) return;
-                                                        try {
-                                                            await favoritosService.deleteFavorito(fav.id);
-                                                            showNotification(`${r.name} quitado de favoritos`, 'success');
-                                                            setFavoritos(prev => prev.filter(item => item.id !== fav.id));
-                                                        } catch (err: any) {
-                                                            showNotification('Error: ' + err.message, 'error');
-                                                        }
-                                                    }}
-                                                    onHistory={async () => {
-                                                        try {
-                                                            await historialService.addToHistorial(fav.place_id);
-                                                            showNotification(`¡Has vuelto a elegir ${r.name}!`, 'success');
-                                                            navigate('/home');
-                                                        } catch (err: any) {
-                                                            showNotification('Error: ' + err.message, 'error');
-                                                        }
-                                                    }}
-                                                    onDetails={() => setSearchParams({ list: selectedList.id.toString(), detail: r.id.toString() })}
-                                                />
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         )}
-                    </div>
-                    )
-                )}
-            </main>
+                    </main>
+                </>
+            )}
 
             {/* New list modal */}
             {showNewModal && (

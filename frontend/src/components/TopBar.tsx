@@ -19,15 +19,14 @@ const TopBar: React.FC<TopBarProps> = ({ rightSlot, leftSlot, showMenu }) => {
   const navigate = useNavigate();
 
   return (
-    <header className="topbar" role="banner">
+    <header className="topbar">
       <div className="topbar-inner">
-        {/* Lado izquierdo: Menú o slot alternativo (botón volver) */}
-        <div className="topbar-side" aria-hidden={!showMenu && !leftSlot}>
+        {/* Left Side: Back button or SideMenu */}
+        <div className="topbar-side">
           {showMenu ? <SideMenu /> : leftSlot}
         </div>
 
-
-        {/* Nombre centrado (siempre como botón a inicio) */}
+        {/* Center: App Name (home link) */}
         <button
           className="topbar-name topbar-home-btn"
           onClick={() => navigate('/home')}
@@ -36,7 +35,7 @@ const TopBar: React.FC<TopBarProps> = ({ rightSlot, leftSlot, showMenu }) => {
           DevorApp
         </button>
 
-        {/* Acciones (futuro: avatar…) */}
+        {/* Right Side: Actions or flexible spacing */}
         <div className="topbar-side topbar-actions">
           {rightSlot}
         </div>

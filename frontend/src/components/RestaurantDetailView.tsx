@@ -67,12 +67,13 @@ const RestaurantDetailView: React.FC<RestaurantDetailViewProps> = ({
         : (todayHours !== '' && !todayHours.toLowerCase().includes('cerrado'));
 
     return (
-        <div className="detail-view-container">
+        <>
             <TopBar 
                 showMenu={false}
                 leftSlot={
-                    <button className="btn-back-link" onClick={onBack}>
-                        <ChevronLeft size={20} /> {backText || 'Atrás'}
+                    <button className="btn-nav-back" onClick={onBack}>
+                        <ChevronLeft size={20} />
+                        <span>{backText || 'Atrás'}</span>
                     </button>
                 }
             />
@@ -178,7 +179,7 @@ const RestaurantDetailView: React.FC<RestaurantDetailViewProps> = ({
                     {actions}
                 </div>
             </main>
-        </div>
+        </>
     );
 };
 
