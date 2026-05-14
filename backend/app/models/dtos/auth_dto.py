@@ -18,6 +18,7 @@ class PasswordResetRequest(BaseModel):
 class ProfileUpdateRequest(BaseModel):
     nombre: str
     apellidos: str
+    ubicacion: str = ""
     password: str
 
 class EmailUpdateRequest(BaseModel):
@@ -27,3 +28,11 @@ class EmailUpdateRequest(BaseModel):
 class PasswordUpdateRequest(BaseModel):
     new_password: str
     old_password: str
+
+class GoogleLoginRequest(BaseModel):
+    token: str
+
+class GoogleRegisterRequest(BaseModel):
+    token: str
+    username: str
+    ubicacion: str = ""

@@ -9,7 +9,8 @@ from typing import Optional
 
 import httpx
 from firebase_admin import auth as fb_auth
-
+from firebase_admin.exceptions import FirebaseError
+from fastapi import HTTPException, status
 from app.core.config import settings
 from app.models.entities.usuarios import Usuario
 from app.infrastructure.firebase.firebase_admin import get_firebase_app, get_firestore_client
@@ -124,7 +125,7 @@ def get_usuario_by_uid(uid: str) -> Optional[Usuario]:
         email=user_record.email or "",
         nombre=profile.get("nombre", ""),
         apellidos=profile.get("apellidos", ""),
-        ubicacion=profile.get("ubicacion"),
+        ubicacion=profile.get("ubicacion", ""),
     )
 
 
@@ -168,8 +169,6 @@ def create_usuario(
     Crea un nuevo usuario en Firebase Auth y su documento de perfil en Firestore.
     Lanza HTTPException con el código y mensaje adecuados si algo falla.
     """
-    from fastapi import HTTPException, status
-    from firebase_admin.exceptions import FirebaseError
 
     get_firebase_app()
 
@@ -213,13 +212,14 @@ def create_usuario(
         ubicacion=ubicacion,
     )
 
-def update_usuario_profile(uid: str, nombre: str, apellidos: str) -> None:
-    """Actualiza el nombre y apellidos en Firestore."""
+def update_usuario_profile(uid: str, nombre: str, apellidos: str, ubicacion: str) -> None:
+    """Actualiza el nombre, apellidos y ubicación en Firestore."""
     get_firebase_app()
     db = get_firestore_client()
     db.collection("usuarios").document(uid).update({
         "nombre": nombre,
         "apellidos": apellidos,
+        "ubicacion": ubicacion,
     })
 
 def update_usuario_email(uid: str, new_email: str) -> None:

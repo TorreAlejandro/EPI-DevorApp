@@ -23,14 +23,16 @@ dependencies = [
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
-pytest-asyncio = "^0.23.0"
-httpx = "^0.28.0"
 
 [dependency-groups]
 dev = [
     "pytest (>=8,<9)",
     "pytest-asyncio (>=0.23,<0.24)",
     "httpx (>=0.28.1,<0.29.0)"
+]
+
+[tool.pyrefly]
+search-path = ["src"]
+site-package-path = [
+  "C:/Users/Alex/AppData/Local/pypoetry/Cache/virtualenvs/backend-SYbF3jEy-py3.14/Lib/site-packages"
 ]

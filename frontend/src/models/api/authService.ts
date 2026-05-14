@@ -1,4 +1,5 @@
 import type { LoginResponse, RegisterResponse } from '../types/auth';
+import { cacheService } from './cacheService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -19,6 +20,40 @@ export const authService = {
         return data;
     },
 
+    loginWithGoogle: async (token: string): Promise<any> => {
+        const response = await fetch(`${API_URL}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ token }),
+        });
+
+        if (response.status === 202) {
+            return await response.json(); // Devuelve {require_username: true, ...}
+        }
+        
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.detail || 'Ocurrió un error al iniciar sesión con Google');
+        }
+        return data;
+    },
+
+    registerWithGoogle: async (token: string, username: string, ubicacion: string = ''): Promise<any> => {
+        const response = await fetch(`${API_URL}/register/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ token, username, ubicacion }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.detail || 'Ocurrió un error al completar el registro con Google');
+        }
+        return data;
+    },
+
     logout: async (): Promise<void> => {
         const response = await fetch(`${API_URL}/logout`, {
             method: 'POST',
@@ -27,6 +62,7 @@ export const authService = {
         if (!response.ok) {
             throw new Error('Error al cerrar sesión');
         }
+        cacheService.clear();
     },
 
     getMe: async (): Promise<any> => {

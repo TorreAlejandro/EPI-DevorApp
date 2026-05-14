@@ -1,5 +1,7 @@
 import re
 from datetime import timedelta
+import httpx
+from app.infrastructure.firebase.firebase_admin import get_firestore_client
 from fastapi import HTTPException, status
 from app.core.config import settings
 from app.core.security import create_access_token
@@ -145,7 +147,7 @@ def update_profile(uid: str, email: str, data: ProfileUpdateRequest) -> Usuario:
         )
     
     # 2. Actualizar en Firestore
-    update_usuario_profile(uid, data.nombre, data.apellidos)
+    update_usuario_profile(uid, data.nombre, data.apellidos, data.ubicacion)
     
     # 3. Devolver usuario actualizado
     return get_usuario_by_uid(uid)
@@ -253,4 +255,111 @@ def delete_account(uid: str, email: str, password: str, db: Session) -> None:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al eliminar de Firebase Auth: {str(e)}"
         )
+
+def login_with_google(token: str) -> dict:
+    url = "https://www.googleapis.com/oauth2/v3/userinfo"
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        resp = httpx.get(url, headers=headers, timeout=10.0)
+        if resp.status_code != 200:
+            raise ValueError("Token inválido")
+        idinfo = resp.json()
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de Google inválido"
+        )
+    
+    email = idinfo.get('email')
+    if not email:
+        raise HTTPException(status_code=400, detail="El token de Google no contiene email")
+        
+    nombre = idinfo.get('given_name', '')
+    apellidos = idinfo.get('family_name', '')
+    
+    try:
+        user_record = fb_auth.get_user_by_email(email)
+        # Existe en Firebase Auth
+        user = get_usuario_by_uid(user_record.uid)
+        if not user:
+            # Caso raro: existe en Auth pero no en Firestore
+            raise HTTPException(status_code=404, detail="Perfil no encontrado")
+            
+        access_token = create_access_token(
+            data={"sub": user_record.uid},
+            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        )
+        return {"require_username": False, "user": user, "access_token": access_token}
+    except fb_auth.UserNotFoundError:
+        # No existe, pedir username
+        return {
+            "require_username": True,
+            "email": email,
+            "nombre": nombre,
+            "apellidos": apellidos
+        }
+
+def register_with_google(token: str, username: str, ubicacion: str = "") -> tuple[Usuario, str]:
+    url = "https://www.googleapis.com/oauth2/v3/userinfo"
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        resp = httpx.get(url, headers=headers, timeout=10.0)
+        if resp.status_code != 200:
+            raise ValueError("Token inválido")
+        idinfo = resp.json()
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de Google inválido"
+        )
+    
+    email = idinfo.get('email')
+    if not email:
+        raise HTTPException(status_code=400, detail="El token de Google no contiene email")
+        
+    nombre = idinfo.get('given_name', '')
+    apellidos = idinfo.get('family_name', '')
+
+    if not (3 <= len(username) <= 30):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El username debe tener entre 3 y 30 caracteres"
+        )
+    
+    if get_uid_by_username(username) is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ese username ya está en uso"
+        )
+    
+    try:
+        user_record = fb_auth.create_user(
+            email=email,
+            display_name=username,
+            email_verified=True
+        )
+    except fb_auth.EmailAlreadyExistsError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El email ya está registrado"
+        )
+        
+    uid = user_record.uid
+    
+    db_fs = get_firestore_client()
+    db_fs.collection("usuarios").document(uid).set({
+        "username": username,
+        "nombre": nombre,
+        "apellidos": apellidos,
+        "ubicacion": ubicacion,
+    })
+    
+    user = get_usuario_by_uid(uid)
+    
+    access_token = create_access_token(
+        data={"sub": uid},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    return user, access_token
+
 

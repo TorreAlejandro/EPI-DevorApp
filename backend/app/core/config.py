@@ -10,8 +10,9 @@ class Settings(BaseSettings):
     FIREBASE_API_KEY: str = ""
     FIREBASE_SERVICE_ACCOUNT_PATH: str = "firebase-service-account.json"
 
-    # Google Maps
+    # Google Maps & OAuth
     GOOGLE_API_KEY: str = ""
+    GOOGLE_CLIENT_ID: str = ""
 
     # PostgreSQL (SQLAlchemy)
     DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/tfg_db"

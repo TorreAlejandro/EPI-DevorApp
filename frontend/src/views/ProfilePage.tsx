@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
+import Autocomplete from 'react-google-autocomplete';
 import { authService } from '../models/api/authService';
 import { useNotification } from '../components/NotificationSystem';
 
@@ -21,6 +22,7 @@ const ProfilePage: React.FC = () => {
     nombre: '',
     apellidos: '',
     email: '',
+    ubicacion: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -40,7 +42,8 @@ const ProfilePage: React.FC = () => {
           ...prev,
           nombre: data.nombre || '',
           apellidos: data.apellidos || '',
-          email: data.email || ''
+          email: data.email || '',
+          ubicacion: data.ubicacion || ''
         }));
       } catch (err) {
         showNotification('Error al cargar datos del perfil', 'error');
@@ -69,7 +72,8 @@ const ProfilePage: React.FC = () => {
         ...prev,
         nombre: user.nombre || '',
         apellidos: user.apellidos || '',
-        email: user.email || ''
+        email: user.email || '',
+        ubicacion: user.ubicacion || ''
       }));
     }
   };
@@ -88,6 +92,7 @@ const ProfilePage: React.FC = () => {
         const result = await authService.updateProfile({
           nombre: formData.nombre,
           apellidos: formData.apellidos,
+          ubicacion: formData.ubicacion,
           password: formData.currentPassword
         });
         setUser(result.user);
@@ -228,6 +233,23 @@ const ProfilePage: React.FC = () => {
                   </div>
                   
                   <div className="form-group">
+                    <label className="form-label">Ubicación preferida</label>
+                    <Autocomplete
+                      apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
+                      onPlaceSelected={(place) => {
+                        if (place?.formatted_address) {
+                          setFormData({...formData, ubicacion: place.formatted_address});
+                        }
+                      }}
+                      onChange={(e: any) => setFormData({...formData, ubicacion: e.target.value})}
+                      options={{ types: [] }}
+                      className="form-input"
+                      placeholder="Ciudad, barrio o dirección..."
+                      defaultValue={formData.ubicacion}
+                    />
+                  </div>
+                  
+                  <div className="form-group">
                     <label className="form-label">Contraseña actual para confirmar</label>
                     <div className="form-input-wrap">
                       <input 
@@ -262,6 +284,10 @@ const ProfilePage: React.FC = () => {
                   <div>
                     <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Apellidos</span>
                     <span style={{ fontSize: '1rem', fontWeight: 500 }}>{user?.apellidos || '—'}</span>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Ubicación</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 500 }}>{user?.ubicacion || '—'}</span>
                   </div>
                 </div>
               )}

@@ -12,6 +12,9 @@ import {
 import { useLogin } from '../controllers/hooks/useLogin';
 import { usePasswordReset } from '../controllers/hooks/usePasswordReset';
 import TopBar from '../components/TopBar';
+import { useGoogleLogin } from '@react-oauth/google';
+import Autocomplete from 'react-google-autocomplete';
+import { authService } from '../models/api/authService';
 
 /* ─── Google SVG logo ─────────────────────────────── */
 const GoogleLogo: React.FC = () => (
@@ -60,9 +63,47 @@ const LoginPage: React.FC = () => {
     if (!isResettingPassword && identifier) setResetEmail(identifier);
   };
 
-  const handleGoogleLogin = () => {
-    const apiBase = import.meta.env.VITE_API_URL ?? '';
-    window.location.href = `${apiBase}/auth/google`;
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [newUbicacion, setNewUbicacion] = useState('');
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setGoogleLoading(true);
+      setGoogleError(null);
+      try {
+        const res = await authService.loginWithGoogle(tokenResponse.access_token);
+        if (res.require_username) {
+          setGoogleToken(tokenResponse.access_token);
+          setShowUsernameModal(true);
+        } else {
+          handleLoginSuccess();
+        }
+      } catch (err: any) {
+        setGoogleError(err.message);
+      } finally {
+        setGoogleLoading(false);
+      }
+    },
+    onError: () => setGoogleError('Error al conectar con Google'),
+  });
+
+  const submitGoogleUsername = async () => {
+    if (!newUsername.trim() || !googleToken) return;
+    setGoogleLoading(true);
+    setGoogleError(null);
+    try {
+      await authService.registerWithGoogle(googleToken, newUsername.trim(), newUbicacion.trim());
+      setShowUsernameModal(false);
+      handleLoginSuccess();
+    } catch (err: any) {
+      setGoogleError(err.message);
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -255,16 +296,26 @@ const LoginPage: React.FC = () => {
                 <span className="line" />
               </div>
 
+              {googleError && (
+                <div className="message error" role="alert" style={{ marginBottom: '1rem' }}>
+                  <AlertCircle size={16} /> {googleError}
+                </div>
+              )}
+              
               <button
                 type="button"
                 id="google-login-btn"
                 className="btn-social"
-                onClick={handleGoogleLogin}
-                disabled={loginLoading}
+                onClick={() => handleGoogleLogin()}
+                disabled={googleLoading}
                 aria-label="Iniciar sesión con Google"
               >
-                <GoogleLogo />
-                Continuar con Google
+                {googleLoading ? 'Cargando...' : (
+                  <>
+                    <GoogleLogo />
+                    Continuar con Google
+                  </>
+                )}
               </button>
 
               <p className="auth-footer">
@@ -277,6 +328,54 @@ const LoginPage: React.FC = () => {
           )}
         </div>
       </main>
+
+      {/* Modal para nuevo nombre de usuario */}
+      {showUsernameModal && (
+        <div className="sidemenu-overlay open" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="sidemenu-backdrop" onClick={() => setShowUsernameModal(false)} />
+          <div className="auth-content" style={{ position: 'relative', zIndex: 10000, background: 'var(--bg)', padding: '2rem', borderRadius: '1rem', width: '90%', maxWidth: '400px' }}>
+            <h2>Elige tu nombre de usuario</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+              Ya casi terminamos. Solo necesitas elegir un nombre de usuario y tu ubicación preferida para completar tu registro con Google.
+            </p>
+            <div className="form-group">
+              <input
+                type="text"
+                className="form-input"
+                placeholder="@usuario"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+              />
+            </div>
+            <div className="form-group" style={{ marginTop: '0.75rem' }}>
+              <Autocomplete
+                apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
+                onPlaceSelected={(place) => {
+                  if (place?.formatted_address) {
+                    setNewUbicacion(place.formatted_address);
+                  }
+                }}
+                onChange={(e: any) => setNewUbicacion(e.target.value)}
+                options={{ types: [] }}
+                className="form-input"
+                placeholder="Ubicación favorita (ej. Madrid)"
+                defaultValue={newUbicacion}
+              />
+            </div>
+            {googleError && (
+              <div className="message error" role="alert" style={{ marginBottom: '1rem' }}>
+                <AlertCircle size={16} /> {googleError}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              <button className="btn-back" onClick={() => setShowUsernameModal(false)} disabled={googleLoading}>Cancelar</button>
+              <button className={`btn-primary${googleLoading ? ' loading' : ''}`} onClick={submitGoogleUsername} disabled={googleLoading || !newUsername.trim()}>
+                {!googleLoading && 'Completar registro'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

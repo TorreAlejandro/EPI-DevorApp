@@ -18,7 +18,10 @@ def get_or_create_restaurante(db: Session, place_id: str) -> int:
     
     result = db.execute(stmt)
     db.commit()
-    return result.scalar()
+    res = result.scalar()
+    if res is None:
+        raise ValueError("No se pudo obtener el ID del restaurante tras la inserción.")
+    return res
 
 def get_restaurante_by_id(db: Session, restaurante_id: int) -> Restaurante | None:
     return db.query(Restaurante).filter(Restaurante.id == restaurante_id).first()

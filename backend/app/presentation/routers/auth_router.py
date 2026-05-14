@@ -2,7 +2,8 @@ from fastapi import APIRouter, Response, status, Depends
 from typing import Annotated
 from app.models.dtos.auth_dto import (
     LoginRequest, RegisterRequest, PasswordResetRequest,
-    ProfileUpdateRequest, EmailUpdateRequest, PasswordUpdateRequest
+    ProfileUpdateRequest, EmailUpdateRequest, PasswordUpdateRequest,
+    GoogleLoginRequest, GoogleRegisterRequest
 )
 from app.services import auth_service
 from app.core.config import settings
@@ -60,6 +61,76 @@ def register(data: RegisterRequest, db: Annotated[Session, Depends(get_db)]):
             "ubicacion": user.ubicacion,
         },
     }
+
+@router.post("/auth/google")
+def login_with_google(data: GoogleLoginRequest, response: Response):
+    result = auth_service.login_with_google(data.token)
+    
+    if result.get("require_username"):
+        response.status_code = status.HTTP_202_ACCEPTED
+        return {
+            "require_username": True, 
+            "email": result.get("email"), 
+            "nombre": result.get("nombre"), 
+            "apellidos": result.get("apellidos")
+        }
+    
+    user = result["user"]
+    access_token = result["access_token"]
+    
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+    
+    return {
+        "message": "Login con Google exitoso",
+        "user": {
+            "username": user.username,
+            "email": user.email,
+            "nombre": user.nombre,
+            "apellidos": user.apellidos,
+            "ubicacion": user.ubicacion,
+        },
+    }
+
+@router.post("/register/google", status_code=status.HTTP_201_CREATED)
+def register_with_google(data: GoogleRegisterRequest, db: Annotated[Session, Depends(get_db)], response: Response):
+    user, access_token = auth_service.register_with_google(data.token, data.username, data.ubicacion)
+    
+    from app.infrastructure.repositories.usuario_repo import get_uid_by_username
+    uid = get_uid_by_username(user.username)
+    if uid:
+        try:
+            from app.services import favoritos_service
+            favoritos_service.create_lista(db, uid, "Favoritos")
+        except Exception as e:
+            print(f"Error creating default favorites list for {user.username}: {e}")
+            
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+
+    return {
+        "message": "Cuenta creada correctamente con Google",
+        "user": {
+            "username": user.username,
+            "email": user.email,
+            "nombre": user.nombre,
+            "apellidos": user.apellidos,
+            "ubicacion": user.ubicacion,
+        },
+    }
+
 
 @router.post("/logout")
 def logout(response: Response):
