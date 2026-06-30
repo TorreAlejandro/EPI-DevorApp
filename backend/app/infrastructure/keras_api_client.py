@@ -6,7 +6,7 @@ class KerasApiClient:
     def __init__(self):
         self.base_url = settings.KERAS_API_URL.rsplit("/predict", 1)[0]
         self.predict_url = settings.KERAS_API_URL
-        self.headers = {"x-api-key": "devorapp_6f8e2b9a1c4d5e0f7a3b8c9d0e1f2a3b4c5d6e7f8"}
+        self.headers = {"x-api-key": settings.KERAS_API_KEY}
 
     async def get_restaurants_info(self, place_ids: List[str]) -> Dict[str, Any]:
         """Consulta metadatos (tipos/precios) al microservicio de IA."""

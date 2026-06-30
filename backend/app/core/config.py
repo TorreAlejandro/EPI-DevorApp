@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     # Microservicio IA (Keras)
     KERAS_API_URL: str = "http://127.0.0.1:8001/predict"
+    KERAS_API_KEY: str = ""
 
     # Test helpers
     SKIP_EMAIL_VERIFICATION: bool = False
