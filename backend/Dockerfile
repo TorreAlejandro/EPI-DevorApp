@@ -3,7 +3,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libpq-dev gcc libc6-dev && \
+        libpq-dev gcc libc6-dev dos2unix && \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir poetry
@@ -18,7 +18,7 @@ COPY entrypoint.sh ./entrypoint.sh
 COPY firebase-service-account.json* ./
 
 RUN poetry install --without dev
-RUN chmod +x entrypoint.sh
+RUN dos2unix entrypoint.sh && chmod +x entrypoint.sh
 
 EXPOSE 8000
 CMD ["sh", "entrypoint.sh"]
