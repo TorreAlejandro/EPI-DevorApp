@@ -56,7 +56,7 @@ describe('NotificationSystem', () => {
         expect(screen.getByText('Title')).toBeInTheDocument();
 
         // Pulsar Confirmar
-        fireEvent.click(screen.getByRole('button', { name: /confirmar/i }));
+        fireEvent.click(screen.getByRole('button', { name: /confirmar/i, hidden: true }));
 
         expect(await screen.findByText('Confirmed')).toBeInTheDocument();
     });
@@ -72,7 +72,7 @@ describe('NotificationSystem', () => {
         fireEvent.click(screen.getByText('Show Confirm'));
 
         // Pulsar Cancelar
-        fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
+        fireEvent.click(screen.getByRole('button', { name: /cancelar/i, hidden: true }));
 
         expect(await screen.findByText('Cancelled')).toBeInTheDocument();
     });
