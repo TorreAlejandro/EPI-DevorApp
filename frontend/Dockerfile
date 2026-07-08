@@ -11,7 +11,7 @@ COPY index.html ./
 COPY vite.config.ts ./
 COPY tsconfig*.json ./
 COPY capacitor.config.ts ./
-COPY .env ./
+COPY package.json .env* ./
 # Disable HTTPS plugin for container build (no cert file available)
 ENV VITE_DISABLE_SSL=true
 RUN npm run build
