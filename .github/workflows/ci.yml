@@ -162,6 +162,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create Firebase service account file
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "$FIREBASE_SERVICE_ACCOUNT" | base64 --decode > backend/firebase-service-account.json
+          else
+            echo '{}' > backend/firebase-service-account.json
+          fi
+
       - name: Build and push Docker images
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
