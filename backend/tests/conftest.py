@@ -23,6 +23,7 @@ for _mod in ("firebase_admin", "firebase_admin.credentials",
 import pytest
 from httpx import AsyncClient, ASGITransport
 from app.main import app
+from app.models.entities.usuarios import Usuario
 
 
 @pytest.fixture(scope="session")
@@ -35,3 +36,16 @@ async def async_client():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="https://test") as client:
         yield client
+
+
+@pytest.fixture
+def dummy_user():
+    """Usuario autenticado reutilizable en todos los test files."""
+    return Usuario(
+        id="test_uid",
+        email="test@test.com",
+        username="testuser",
+        nombre="Test",
+        apellidos="User",
+        ubicacion="Madrid",
+    )

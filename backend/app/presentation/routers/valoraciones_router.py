@@ -8,17 +8,10 @@ from app.infrastructure.database import get_db
 from app.models.dtos.valoracion_dto import ValoracionCreate, ValoracionResponse, ValoracionPublicaResponse
 from app.models.entities.usuarios import Usuario
 from app.services import valoracion_service
+from app.presentation.router_utils import get_firebase_uid as _get_uid
 
 
 router = APIRouter(prefix="/api/valoraciones", tags=["Valoraciones"])
-
-
-def _get_uid(current_user: Usuario) -> str:
-    """Resuelve el Firebase UID a partir del email del usuario autenticado."""
-    from firebase_admin import auth as fb_auth
-    from app.infrastructure.firebase.firebase_admin import get_firebase_app
-    get_firebase_app()
-    return fb_auth.get_user_by_email(current_user.email).uid
 
 
 @router.post("", response_model=ValoracionResponse, status_code=201)

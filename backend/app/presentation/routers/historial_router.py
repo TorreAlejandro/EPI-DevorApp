@@ -15,16 +15,9 @@ from app.infrastructure.database import get_db
 from app.models.dtos.historial_dto import HistorialEntryCreate, HistorialEntryResponse, PopularPlacesRequest
 from app.models.entities.usuarios import Usuario
 from app.services import historial_service
+from app.presentation.router_utils import get_firebase_uid as _get_uid
 
 router = APIRouter(prefix="/api/historial", tags=["Historial"])
-
-
-def _get_uid(current_user: Usuario) -> str:
-    """Resuelve el Firebase UID a partir del email del usuario autenticado."""
-    from firebase_admin import auth as fb_auth
-    from app.infrastructure.firebase.firebase_admin import get_firebase_app
-    get_firebase_app()
-    return fb_auth.get_user_by_email(current_user.email).uid
 
 
 @router.get("")
@@ -90,22 +83,13 @@ async def get_popular_historial(
     if data.location:
         lat, lng = await recommendation_service._geocode_location(data.location)
         if lat is not None and lng is not None:
-            def haversine(lat1, lon1, lat2, lon2):
-                R = 6371.0
-                dlat = math.radians(lat2 - lat1)
-                dlon = math.radians(lon2 - lon1)
-                a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
-                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-                return R * c
-            
-            filtered_results = []
-            for r in results:
-                r_lat = r.get("latitude")
-                r_lng = r.get("longitude")
-                if r_lat is not None and r_lng is not None:
-                    dist = haversine(lat, lng, r_lat, r_lng)
-                    if dist <= 30.0:
-                        filtered_results.append(r)
+            from app.services.recommendation_service import RecommendationService
+            filtered_results = [
+                r for r in results
+                if r.get("latitude") is not None
+                and r.get("longitude") is not None
+                and RecommendationService._haversine(lat, lng, r["latitude"], r["longitude"]) <= 30.0
+            ]
             results = filtered_results
             
     return results[:data.limit]

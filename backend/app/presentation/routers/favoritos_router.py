@@ -8,15 +8,9 @@ from app.infrastructure.database import get_db
 from app.models.dtos.favoritos_dto import ListaCreate, ListaUpdate, FavoritoCreate
 from app.models.entities.usuarios import Usuario
 from app.services import favoritos_service
+from app.presentation.router_utils import get_firebase_uid as _get_uid
 
 router = APIRouter(prefix="/api/favoritos", tags=["Favoritos"])
-
-
-def _get_uid(current_user: Usuario) -> str:
-    from firebase_admin import auth as fb_auth
-    from app.infrastructure.firebase.firebase_admin import get_firebase_app
-    get_firebase_app()
-    return fb_auth.get_user_by_email(current_user.email).uid
 
 
 # ── Listas ───────────────────────────────────────────────────────────────────
