@@ -136,6 +136,10 @@ jobs:
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v7.1.0
+        with:
+          args: >
+            -Dsonar.jasmin.internal.disabled=true
+            -Dsonar.jasmin.internal.js.ts.disabled=true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
