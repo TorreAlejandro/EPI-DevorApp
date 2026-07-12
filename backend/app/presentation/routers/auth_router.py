@@ -14,30 +14,35 @@ from app.infrastructure.database import get_db
 
 router = APIRouter(prefix="/api", tags=["Auth"])
 
-@router.post("/login")
-def login(login_data: LoginRequest, response: Response):
-    user, access_token = auth_service.login(login_data.identifier, login_data.password)
 
+def _user_dict(user: Usuario) -> dict:
+    """Construye el dict de usuario para las respuestas de autenticación."""
+    return {
+        "username": user.username,
+        "email": user.email,
+        "nombre": user.nombre,
+        "apellidos": user.apellidos,
+        "ubicacion": user.ubicacion,
+        "is_google": user.is_google,
+    }
+
+
+def _set_auth_cookie(response: Response, token: str) -> None:
+    """Configura la cookie de sesión con el JWT de acceso."""
     response.set_cookie(
         key="access_token",
-        value=access_token,
+        value=token,
         httponly=True,
         samesite="lax",
         secure=True,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
-    return {
-        "message": "Login exitoso",
-        "user": {
-            "username": user.username,
-            "email": user.email,
-            "nombre": user.nombre,
-            "apellidos": user.apellidos,
-            "ubicacion": user.ubicacion,
-            "is_google": user.is_google,
-        },
-    }
+@router.post("/login")
+def login(login_data: LoginRequest, response: Response):
+    user, access_token = auth_service.login(login_data.identifier, login_data.password)
+    _set_auth_cookie(response, access_token)
+    return {"message": "Login exitoso", "user": _user_dict(user)}
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(data: RegisterRequest, db: Annotated[Session, Depends(get_db)]):
@@ -52,17 +57,7 @@ def register(data: RegisterRequest, db: Annotated[Session, Depends(get_db)]):
         except Exception as e:
             print(f"Error creating default favorites list for {user.username}: {e}")
 
-    return {
-        "message": "Cuenta creada correctamente",
-        "user": {
-            "username": user.username,
-            "email": user.email,
-            "nombre": user.nombre,
-            "apellidos": user.apellidos,
-            "ubicacion": user.ubicacion,
-            "is_google": user.is_google,
-        },
-    }
+    return {"message": "Cuenta creada correctamente", "user": _user_dict(user)}
 
 @router.post("/auth/google")
 def login_with_google(data: GoogleLoginRequest, response: Response):
@@ -79,27 +74,8 @@ def login_with_google(data: GoogleLoginRequest, response: Response):
     
     user = result["user"]
     access_token = result["access_token"]
-    
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        samesite="lax",
-        secure=True,
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
-    
-    return {
-        "message": "Login con Google exitoso",
-        "user": {
-            "username": user.username,
-            "email": user.email,
-            "nombre": user.nombre,
-            "apellidos": user.apellidos,
-            "ubicacion": user.ubicacion,
-            "is_google": user.is_google,
-        },
-    }
+    _set_auth_cookie(response, access_token)
+    return {"message": "Login con Google exitoso", "user": _user_dict(user)}
 
 @router.post("/register/google", status_code=status.HTTP_201_CREATED)
 def register_with_google(data: GoogleRegisterRequest, db: Annotated[Session, Depends(get_db)], response: Response):
@@ -113,27 +89,9 @@ def register_with_google(data: GoogleRegisterRequest, db: Annotated[Session, Dep
             favoritos_service.create_lista(db, uid, "Favoritos")
         except Exception as e:
             print(f"Error creating default favorites list for {user.username}: {e}")
-            
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        samesite="lax",
-        secure=True,
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
 
-    return {
-        "message": "Cuenta creada correctamente con Google",
-        "user": {
-            "username": user.username,
-            "email": user.email,
-            "nombre": user.nombre,
-            "apellidos": user.apellidos,
-            "ubicacion": user.ubicacion,
-            "is_google": user.is_google,
-        },
-    }
+    _set_auth_cookie(response, access_token)
+    return {"message": "Cuenta creada correctamente con Google", "user": _user_dict(user)}
 
 
 @router.post("/logout")

@@ -97,3 +97,44 @@ async def test_delete_from_historial_endpoint_not_found(mock_hist_service, mock_
     app.dependency_overrides.clear()
 
     assert response.status_code == 404
+
+
+# ── GET /api/historial/populares ──────────────────────────────────────────────
+
+@pytest.mark.asyncio
+@patch("app.presentation.routers.historial_router.historial_service")
+@patch("app.services.recommendation_service.recommendation_service")
+async def test_get_popular_historial_sin_ubicacion(mock_rec_service, mock_hist_service):
+    """El endpoint de populares debe devolver los más visitados sin filtro geográfico."""
+    mock_hist_service.get_popular_places.return_value = [("place1", 10), ("place2", 5)]
+    mock_rec_service.get_place_details = AsyncMock(
+        side_effect=lambda pid: {"id": pid, "name": f"Restaurante {pid}",
+                                  "latitude": 40.4, "longitude": -3.7}
+    )
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://test") as ac:
+        response = await ac.post("/api/historial/populares", json={"limit": 5})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["id"] == "place1"
+
+
+@pytest.mark.asyncio
+@patch("app.presentation.routers.historial_router.historial_service")
+@patch("app.services.recommendation_service.recommendation_service")
+async def test_get_popular_historial_con_ubicacion(mock_rec_service, mock_hist_service):
+    """Con ubicación, el endpoint debe filtrar por distancia ≤ 30 km."""
+    mock_hist_service.get_popular_places.return_value = [("place1", 10)]
+    # place1 está a 0 km → debe pasar el filtro
+    mock_rec_service.get_place_details = AsyncMock(
+        return_value={"id": "place1", "name": "Cerca", "latitude": 40.4168, "longitude": -3.7038}
+    )
+    mock_rec_service._geocode_location = AsyncMock(return_value=(40.4168, -3.7038))
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://test") as ac:
+        response = await ac.post("/api/historial/populares", json={"limit": 5, "location": "Madrid"})
+
+    assert response.status_code == 200
+

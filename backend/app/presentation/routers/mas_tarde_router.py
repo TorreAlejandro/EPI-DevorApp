@@ -18,16 +18,9 @@ from app.models.dtos.mas_tarde_dto import MasTardeCreate, MasTardeResponse
 from app.models.entities.usuarios import Usuario
 from app.services import mas_tarde_service
 from app.services.recommendation_service import recommendation_service
+from app.presentation.router_utils import get_firebase_uid as _get_uid
 
 router = APIRouter(prefix="/api/mas-tarde", tags=["Mas Tarde"])
-
-
-def _get_uid(current_user: Usuario) -> str:
-    """Resuelve el Firebase UID a partir del email del usuario autenticado."""
-    from firebase_admin import auth as fb_auth
-    from app.infrastructure.firebase.firebase_admin import get_firebase_app
-    get_firebase_app()
-    return fb_auth.get_user_by_email(current_user.email).uid
 
 
 @router.get("")

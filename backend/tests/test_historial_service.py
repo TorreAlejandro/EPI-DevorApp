@@ -40,3 +40,26 @@ def test_delete_from_historial(mock_repo):
     
     assert result is True
     mock_repo.delete_historial_entry.assert_called_once_with(db_mock, 1, "uid1")
+
+
+@patch("app.services.historial_service.historial_repo")
+def test_get_popular_places(mock_repo):
+    """get_popular_places debe devolver los places_id más visitados del repo."""
+    db_mock = MagicMock()
+    mock_repo.get_top_places.return_value = [("place1", 10), ("place2", 5)]
+
+    result = historial_service.get_popular_places(db_mock, limit=2)
+
+    assert result == [("place1", 10), ("place2", 5)]
+    mock_repo.get_top_places.assert_called_once_with(db_mock, 2)
+
+
+@patch("app.services.historial_service.historial_repo")
+def test_get_popular_places_vacio(mock_repo):
+    """get_popular_places devuelve lista vacía si no hay historial."""
+    db_mock = MagicMock()
+    mock_repo.get_top_places.return_value = []
+
+    result = historial_service.get_popular_places(db_mock)
+    assert result == []
+
