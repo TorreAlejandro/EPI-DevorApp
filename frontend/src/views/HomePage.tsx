@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Search, MapPin, Navigation, Star,
+  Search, MapPin, Navigation,
   Bookmark, ChevronRight, AlertCircle, UtensilsCrossed, Loader2, Heart
 } from 'lucide-react';
 import { useLogout } from '../controllers/hooks/useLogout';

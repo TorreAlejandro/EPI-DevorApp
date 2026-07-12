@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-    Clock, Search, Star, UtensilsCrossed, X, MoreVertical,
+    Clock, Search, UtensilsCrossed, X, MoreVertical,
     Map, Trash2, Bookmark
 } from 'lucide-react';
 import { savedForLaterService } from '../models/api/savedForLaterService';
