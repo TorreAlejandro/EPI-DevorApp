@@ -9,16 +9,28 @@ vi.mock('../components/SideMenu', () => ({
     default: () => <div data-testid="mock-side-menu" />,
 }));
 
-// ── Datos base del restaurante ────────────────────────────────────────────────
+interface TestRestaurant {
+    name: string;
+    rating: number;
+    user_ratings_total: number;
+    types: string[];
+    address: string;
+    main_photo?: string;
+    opening_hours?: string[];
+    open_now?: boolean;
+    website_uri?: string;
+    google_maps_uri?: string;
+    phone_number?: string;
+}
 
-const BASE_RESTAURANT = {
+const BASE_RESTAURANT: TestRestaurant = {
     name: 'Restaurante Test',
     rating: 4.2,
     user_ratings_total: 150,
     types: ['restaurant', 'food'],
     address: 'Calle Mayor 1, Oviedo',
     google_maps_uri: 'https://maps.google.com/?q=test',
-    open_now: true as boolean | undefined,
+    open_now: true,
     opening_hours: [
         'Lunes: 12:00–23:00',
         'Martes: 12:00–23:00',
@@ -31,7 +43,7 @@ const BASE_RESTAURANT = {
 };
 
 const renderView = (
-    overrides: Partial<typeof BASE_RESTAURANT> = {},
+    overrides: Partial<TestRestaurant> = {},
     extra: { subtitle?: string; backText?: string; actions?: React.ReactNode; onBack?: () => void } = {}
 ) =>
     render(
