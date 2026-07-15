@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi, describe, it, expect } from 'vitest';
-import RestaurantDetailView from '../components/RestaurantDetailView';
+import RestaurantDetailView, { formatTimeRange } from '../components/RestaurantDetailView';
 
 // Mockeamos SideMenu (dependencia transitiva a través de TopBar)
 vi.mock('../components/SideMenu', () => ({
@@ -59,43 +59,56 @@ const renderView = (
     );
 
 describe('RestaurantDetailView', () => {
-    // ── Renderizado básico ────────────────────────────────────────────────────
+    // ── Renderizado básico y tipo ─────────────────────────────────────────────
 
-    it('renderiza el nombre del restaurante', () => {
-        renderView();
-        expect(screen.getByText('Restaurante Test')).toBeInTheDocument();
-    });
+    const renderCases = [
+        {
+            description: 'renderiza el nombre del restaurante',
+            overrides: {},
+            extra: {},
+            expectedText: 'Restaurante Test',
+        },
+        {
+            description: 'renderiza la dirección',
+            overrides: {},
+            extra: {},
+            expectedText: 'Calle Mayor 1, Oviedo',
+        },
+        {
+            description: 'renderiza el valor numérico del rating',
+            overrides: {},
+            extra: {},
+            expectedText: '4.2',
+        },
+        {
+            description: 'renderiza el número total de valoraciones',
+            overrides: {},
+            extra: {},
+            expectedText: '(150)',
+        },
+        {
+            description: 'renderiza el slot de acciones',
+            overrides: {},
+            extra: { actions: <button>Acción personalizada</button> },
+            expectedText: 'Acción personalizada',
+        },
+        {
+            description: 'muestra el primer type formateado con mayúsculas',
+            overrides: { types: ['pizza_restaurant'] },
+            extra: {},
+            expectedText: 'Pizza Restaurant',
+        },
+        {
+            description: 'muestra "Restaurante" cuando types está vacío',
+            overrides: { types: [] },
+            extra: {},
+            expectedText: 'Restaurante',
+        },
+    ];
 
-    it('renderiza la dirección', () => {
-        renderView();
-        expect(screen.getByText('Calle Mayor 1, Oviedo')).toBeInTheDocument();
-    });
-
-    it('renderiza el valor numérico del rating', () => {
-        renderView();
-        expect(screen.getByText('4.2')).toBeInTheDocument();
-    });
-
-    it('renderiza el número total de valoraciones', () => {
-        renderView();
-        expect(screen.getByText('(150)')).toBeInTheDocument();
-    });
-
-    it('renderiza el slot de acciones', () => {
-        renderView({}, { actions: <button>Acción personalizada</button> });
-        expect(screen.getByText('Acción personalizada')).toBeInTheDocument();
-    });
-
-    // ── Tipo del restaurante ──────────────────────────────────────────────────
-
-    it('muestra el primer type formateado con mayúsculas', () => {
-        renderView({ types: ['pizza_restaurant'] });
-        expect(screen.getByText('Pizza Restaurant')).toBeInTheDocument();
-    });
-
-    it('muestra "Restaurante" cuando types está vacío', () => {
-        renderView({ types: [] });
-        expect(screen.getByText('Restaurante')).toBeInTheDocument();
+    it.each(renderCases)('$description', ({ overrides, extra, expectedText }) => {
+        renderView(overrides, extra);
+        expect(screen.getByText(expectedText)).toBeInTheDocument();
     });
 
     // ── Estado abierto / cerrado ──────────────────────────────────────────────
@@ -219,4 +232,32 @@ describe('RestaurantDetailView', () => {
         renderView();
         expect(screen.getByText('Google Maps')).toBeInTheDocument();
     });
+
+    // ── Formateador de horarios (formatTimeRange) ──────────────────────────────
+
+    describe('formatTimeRange', () => {
+        it('normaliza rangos de horas en formato 12h (AM/PM) a formato 24h', () => {
+            expect(formatTimeRange('12:00 PM – 11:30 PM')).toBe('12:00 - 23:30');
+            expect(formatTimeRange('12:00 p.m. – 11:30 p.m.')).toBe('12:00 - 23:30');
+            expect(formatTimeRange('9:00 AM - 5:00 PM')).toBe('09:00 - 17:00');
+            expect(formatTimeRange('9 AM - 5 PM')).toBe('09:00 - 17:00');
+        });
+
+        it('reemplaza "24:00" por "00:00" y mantiene el formato 24h', () => {
+            expect(formatTimeRange('12:00–24:00')).toBe('12:00 - 00:00');
+            expect(formatTimeRange('24:00')).toBe('00:00');
+        });
+
+        it('maneja múltiples turnos con comas de manera correcta', () => {
+            expect(formatTimeRange('12:00 PM – 4:00 PM, 7:00 PM – 12:00 AM')).toBe('12:00 - 16:00, 19:00 - 00:00');
+            expect(formatTimeRange('12:00-16:00,19:00-24:00')).toBe('12:00 - 16:00, 19:00 - 00:00');
+        });
+
+        it('no altera palabras descriptivas como Cerrado u Open 24 hours', () => {
+            expect(formatTimeRange('Cerrado')).toBe('Cerrado');
+            expect(formatTimeRange('Closed')).toBe('Cerrado');
+            expect(formatTimeRange('Abierto 24 horas')).toBe('Abierto 24 horas');
+        });
+    });
 });
+

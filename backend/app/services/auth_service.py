@@ -33,8 +33,9 @@ from app.models.entities.mas_tarde import MasTarde
 from app.models.entities.valoracion import Valoracion
 from app.models.entities.valoracion_like import LikeValoracion
 
-_EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 _PASSWORD_REGEX = re.compile(r"^(?=.*[A-Za-z])(?=.*\d).{8,}$")
+_ERR_CREDENCIALES_INCORRECTAS = "Credenciales incorrectas"
 
 def login(identifier: str, password: str) -> tuple[Usuario, str]:
     if not identifier or not password:
@@ -52,7 +53,7 @@ def login(identifier: str, password: str) -> tuple[Usuario, str]:
         if uid is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciales incorrectas",
+                detail=_ERR_CREDENCIALES_INCORRECTAS,
             )
 
         try:
@@ -61,7 +62,7 @@ def login(identifier: str, password: str) -> tuple[Usuario, str]:
         except Exception:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciales incorrectas",
+                detail=_ERR_CREDENCIALES_INCORRECTAS,
             )
 
     try:
@@ -78,7 +79,7 @@ def login(identifier: str, password: str) -> tuple[Usuario, str]:
     if uid is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas",
+            detail=_ERR_CREDENCIALES_INCORRECTAS,
         )
 
     user = get_usuario_by_uid(uid)

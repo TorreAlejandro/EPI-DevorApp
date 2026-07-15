@@ -74,75 +74,89 @@ def verify_api_key(x_api_key: str = Header(None)):
     if x_api_key != API_KEY_SECRET:
         raise HTTPException(status_code=403, detail="Clave de API no válida")
 
-@app.on_event("startup")
-async def startup_event():
-    global model, user_mapping, place_mapping, places_cache
-    global TAGS_ORDER, NUM_TAGS, tag_to_idx
-
-    # 1. Cargar el modelo
-    print(f"🔍 Intentando cargar modelo desde: {MODEL_PATH}")
+def _detect_num_tags(keras_model) -> Optional[int]:
     try:
-        if os.path.exists(MODEL_PATH):
-            # compile=False evita errores de incompatibilidad Keras2→Keras3
-            # (las métricas/optimizador guardados no son necesarios para inferencia)
-            model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-            print(f"✅ Modelo cargado correctamente (compile=False).")
-
-            # Auto-detectar NUM_TAGS real del modelo desde sus inputs
-            try:
-                num_tags_modelo = None
-                for inp in model.inputs:
-                    if "tags" in inp.name.lower():
-                        num_tags_modelo = inp.shape[-1]
-                        break
-
-                if num_tags_modelo is None:
-                    raise ValueError("No se encontró una entrada con 'tags' en el nombre.")
-
-                print(f"🔎 El modelo fue entrenado con NUM_TAGS = {num_tags_modelo}")
-
-                if num_tags_modelo != len(TAGS_ORDER_FULL):
-                    print(f"⚠️  Ajustando TAGS_ORDER de {len(TAGS_ORDER_FULL)} → {num_tags_modelo} tags.")
-                    TAGS_ORDER = TAGS_ORDER_FULL[:num_tags_modelo]
-                    NUM_TAGS = num_tags_modelo
-                    tag_to_idx = {tag: i for i, tag in enumerate(TAGS_ORDER)}
-                else:
-                    print(f"✅ Tags en sync: {NUM_TAGS} etiquetas.")
-            except Exception as inner_e:
-                print(f"⚠️  No se pudo auto-detectar NUM_TAGS: {inner_e}. Usando {NUM_TAGS} tags.")
-        else:
-            print(f"❌ MODELO NO ENCONTRADO en: {MODEL_PATH}")
-            print(f"   Archivos en la carpeta models/:")
-            models_dir = os.path.join(BASE_DIR, "models")
-            if os.path.exists(models_dir):
-                for f in os.listdir(models_dir):
-                    print(f"     - {f}")
+        for inp in keras_model.inputs:
+            if "tags" in inp.name.lower():
+                return inp.shape[-1]
     except Exception as e:
-        print(f"💥 Error crítico al cargar el modelo:")
+        print(f"⚠️  No se pudo leer las entradas del modelo: {e}")
+    return None
+
+def _sync_tags(keras_model):
+    global TAGS_ORDER, NUM_TAGS, tag_to_idx
+    num_tags_modelo = _detect_num_tags(keras_model)
+    if num_tags_modelo is None:
+        print(f"⚠️  No se pudo auto-detectar NUM_TAGS. Usando {NUM_TAGS} tags.")
+        return
+
+    print(f"🔎 El modelo fue entrenado con NUM_TAGS = {num_tags_modelo}")
+    if num_tags_modelo != len(TAGS_ORDER_FULL):
+        print(f"⚠️  Ajustando TAGS_ORDER de {len(TAGS_ORDER_FULL)} → {num_tags_modelo} tags.")
+        TAGS_ORDER = TAGS_ORDER_FULL[:num_tags_modelo]
+        NUM_TAGS = num_tags_modelo
+        tag_to_idx = {tag: i for i, tag in enumerate(TAGS_ORDER)}
+    else:
+        print(f"✅ Tags en sync: {NUM_TAGS} etiquetas.")
+
+def _print_models_directory(models_dir: str):
+    if os.path.exists(models_dir):
+        print("   Archivos en la carpeta models/:")
+        for f in os.listdir(models_dir):
+            print(f"     - {f}")
+
+def _load_model_safe():
+    global model
+    print(f"🔍 Intentando cargar modelo desde: {MODEL_PATH}")
+    if not os.path.exists(MODEL_PATH):
+        print(f"❌ MODELO NO ENCONTRADO en: {MODEL_PATH}")
+        _print_models_directory(os.path.join(BASE_DIR, "models"))
+        return
+
+    try:
+        model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+        print("✅ Modelo cargado correctamente (compile=False).")
+        _sync_tags(model)
+    except Exception as e:
+        print("💥 Error crítico al cargar el modelo:")
         tb.print_exc()
 
-    # 2. Cargar Mapeos
-    _models_dir = os.path.join(BASE_DIR, "models")
+async def _load_mappings():
+    global user_mapping, place_mapping
+    models_dir = os.path.join(BASE_DIR, "models")
     try:
-        async with aiofiles.open(os.path.join(_models_dir, "user_mapping.json"), "r") as f:
+        async with aiofiles.open(os.path.join(models_dir, "user_mapping.json"), "r") as f:
             user_mapping = json.loads(await f.read())
-        async with aiofiles.open(os.path.join(_models_dir, "place_mapping.json"), "r") as f:
+        async with aiofiles.open(os.path.join(models_dir, "place_mapping.json"), "r") as f:
             place_mapping = json.loads(await f.read())
         print(f"✅ Mappings cargados — {len(user_mapping)} usuarios / {len(place_mapping)} lugares.")
     except Exception as e:
         print(f"⚠️  Mapeos no encontrados: {e}. Ejecuta train_pipeline.py primero.")
 
-    # 3. Cargar Caché de Lugares
-    _cache_path = os.path.join(BASE_DIR, "places_cache.json")
+async def _load_places_cache():
+    global places_cache
+    cache_path = os.path.join(BASE_DIR, "places_cache.json")
+    if not os.path.exists(cache_path):
+        print("ℹ️  No hay places_cache.json aún (se creará al entrenar).")
+        return
+
     try:
-        if os.path.exists(_cache_path):
-            async with aiofiles.open(_cache_path, "r", encoding="utf-8") as f:
-                places_cache = json.loads(await f.read())
-            print(f"✅ Caché de lugares cargado ({len(places_cache)} entradas).")
-        else:
-            print(f"ℹ️  No hay places_cache.json aún (se creará al entrenar).")
+        async with aiofiles.open(cache_path, "r", encoding="utf-8") as f:
+            places_cache = json.loads(await f.read())
+        print(f"✅ Caché de lugares cargado ({len(places_cache)} entradas).")
     except Exception as e:
         print(f"⚠️  Error cargando places_cache: {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    # 1. Cargar el modelo
+    _load_model_safe()
+
+    # 2. Cargar Mapeos
+    await _load_mappings()
+
+    # 3. Cargar Caché de Lugares
+    await _load_places_cache()
 
 
 def extract_tags_vector(types: List[str]) -> np.ndarray:
@@ -155,7 +169,14 @@ def extract_tags_vector(types: List[str]) -> np.ndarray:
     return tags_vector
 
 
-@app.post("/predict", dependencies=[Depends(verify_api_key)])
+@app.post(
+    "/predict",
+    dependencies=[Depends(verify_api_key)],
+    responses={
+        503: {"description": "El modelo no está cargado. Revisa los logs de arranque."},
+        400: {"description": "Error en la predicción."},
+    },
+)
 async def predict(req: PredictRequest):
     if model is None:
         raise HTTPException(status_code=503, detail="El modelo no está cargado. Revisa los logs de arranque.")

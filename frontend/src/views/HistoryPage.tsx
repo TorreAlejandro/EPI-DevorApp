@@ -134,6 +134,205 @@ const ItemMenu: React.FC<ItemMenuProps> = ({ isRated, onRate, onFavorite, onRech
     );
 };
 
+// ── Aspect Stars Row (Reduces nesting level) ──────────────────────────────────
+interface AspectStarsRowProps {
+    aspect: string;
+    ratingVal: { calidad: number; precio: number; higiene: number; trato: number };
+    onStarClick: (aspect: string, star: number) => void;
+}
+
+const AspectStarsRow: React.FC<AspectStarsRowProps> = ({ aspect, ratingVal, onStarClick }) => {
+    return (
+        <div style={{ display: 'flex', gap: '0.4rem' }}>
+            {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                    key={star}
+                    size={22}
+                    fill={star <= (ratingVal as any)[aspect] ? "#ffb400" : "transparent"}
+                    color={star <= (ratingVal as any)[aspect] ? "#ffb400" : "var(--muted)"}
+                    onClick={() => onStarClick(aspect, star)}
+                    style={{ cursor: 'pointer', transition: 'all 0.2s ease', opacity: star <= (ratingVal as any)[aspect] ? 1 : 0.8 }}
+                />
+            ))}
+        </div>
+    );
+};
+
+// ── Sub-component: History Overview ───────────────────────────────────────────
+interface HistoryGroup {
+    label: string;
+    entries: HistoryEntry[];
+}
+
+interface HistoryOverviewProps {
+    loading: boolean;
+    error: string | null;
+    searchTerm: string;
+    setSearchTerm: (term: string) => void;
+    statusFilter: 'all' | 'rated' | 'unrated';
+    cycleFilter: () => void;
+    historyEntries: HistoryEntry[];
+    unratedCount: number;
+    groups: [string, HistoryGroup][];
+    expandedGroups: Set<string>;
+    toggleGroup: (key: string) => void;
+    ratedPlaceIds: Set<string>;
+    setSearchParams: (params: any) => void;
+    handleRateClick: (entry: HistoryEntry) => void;
+    handleAddToFavoritesClick: (entry: HistoryEntry) => void;
+    handleRechoose: (entry: HistoryEntry) => void;
+    handleDeleteFromHistory: (entry: HistoryEntry) => void;
+}
+
+const HistoryOverview: React.FC<HistoryOverviewProps> = ({
+    loading,
+    error,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    cycleFilter,
+    historyEntries,
+    unratedCount,
+    groups,
+    expandedGroups,
+    toggleGroup,
+    ratedPlaceIds,
+    setSearchParams,
+    handleRateClick,
+    handleAddToFavoritesClick,
+    handleRechoose,
+    handleDeleteFromHistory,
+}) => {
+    let statusFilterLabel = 'Filtrar';
+    if (statusFilter === 'rated') {
+        statusFilterLabel = 'Reseñados';
+    } else if (statusFilter === 'unrated') {
+        statusFilterLabel = 'Sin reseña';
+    }
+
+    return (
+        <>
+            {/* Header Section */}
+            <div style={{ paddingTop: 'var(--space-6)', textAlign: 'center', marginBottom: '2rem' }}>
+                <div style={{
+                    width: 64, height: 64, borderRadius: 18,
+                    background: 'linear-gradient(135deg, #5b6af0, #3dadd4)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 1rem', boxShadow: '0 8px 24px rgba(91,106,240,0.3)',
+                    animation: 'scaleUp 0.3s ease'
+                }}>
+                    <Clock size={28} color="white" />
+                </div>
+                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800 }}>Mi historial</h1>
+                <p style={{ margin: '0.4rem 0 0', fontSize: '0.95rem', color: 'var(--muted)' }}>
+                    Restaurantes que has visitado o seleccionado
+                </p>
+            </div>
+
+            {/* Search Bar */}
+            <div className="history-filter-row">
+                <div className="internal-search-box" style={{ flex: 1, marginBottom: 0 }}>
+                    <Search className="search-icon" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Buscar en historial..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <button
+                    className={`history-filter-btn ${statusFilter === 'all' ? '' : 'active'}`}
+                    onClick={cycleFilter}
+                >
+                    <Filter size={16} />
+                    {statusFilterLabel}
+                </button>
+            </div>
+
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: '3rem' }}>
+                    <div className="loading-spinner" style={{ border: '4px solid var(--border)', borderTop: '4px solid var(--accent)', borderRadius: '50%', width: 30, height: 30, animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
+                    <p style={{ color: 'var(--muted)' }}>Cargando historial...</p>
+                </div>
+            ) : error ? (
+                <div className="message error" style={{ textAlign: 'center', padding: '2rem', color: 'var(--error)' }}>
+                    {error}
+                </div>
+            ) : (
+                <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: 'var(--font-sm)', color: 'var(--muted)', fontWeight: 600 }}>
+                            {historyEntries.length} restaurantes
+                        </span>
+                        {unratedCount > 0 && (
+                            <div style={{ background: 'rgba(176,125,58,0.1)', color: '#d4a045', padding: '4px 12px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
+                                {unratedCount} sin reseña
+                            </div>
+                        )}
+                    </div>
+
+                    {groups.map(([key, group]) => {
+                        const isOpen = expandedGroups.has(key);
+                        return (
+                            <div key={key}>
+                                <button
+                                    className="history-group-header"
+                                    onClick={() => toggleGroup(key)}
+                                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                >
+                                    <span className="history-group-title">{group.label}</span>
+                                    <div className="history-group-meta">
+                                        <span>{group.entries.length} restaurantes</span>
+                                        {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                    </div>
+                                </button>
+
+                                {isOpen && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0.5rem 0 1rem' }}>
+                                        {group.entries.map((entry) => {
+                                            const isRated = ratedPlaceIds.has(entry.place_id);
+                                            const visitDate = new Date(entry.visited_at || '');
+
+                                            return (
+                                                <RestaurantCompactCard
+                                                    key={entry.id}
+                                                    name={entry.name}
+                                                    rating={entry.rating}
+                                                    user_ratings_total={entry.user_ratings_total}
+                                                    address={entry.address}
+                                                    main_photo={entry.main_photo}
+                                                    onClick={() => { if (entry.place_id) setSearchParams({ detail: entry.place_id.toString() }); }}
+                                                    metaSlot={<span>• {visitDate.getDate()} {visitDate.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '')}</span>}
+                                                    actionSlot={
+                                                        <ItemMenu
+                                                            isRated={isRated}
+                                                            onRate={() => handleRateClick(entry)}
+                                                            onFavorite={() => handleAddToFavoritesClick(entry)}
+                                                            onRechoose={() => handleRechoose(entry)}
+                                                            onDelete={() => handleDeleteFromHistory(entry)}
+                                                            onDetails={() => { if (entry.place_id) setSearchParams({ detail: entry.place_id.toString() }); }}
+                                                        />
+                                                    }
+                                                >
+                                                    <div style={{ position: 'absolute', top: '10px', right: '35px', zIndex: 10 }}>
+                                                        <div className={`rating-status-badge ${isRated ? 'rated' : 'unrated'}`}>
+                                                            {isRated ? 'Reseñado' : 'Sin reseñar'}
+                                                        </div>
+                                                    </div>
+                                                </RestaurantCompactCard>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </>
+    );
+};
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 const HistoryPage: React.FC = () => {
     const navigate = useNavigate();
@@ -176,6 +375,10 @@ const HistoryPage: React.FC = () => {
     const [newListName, setNewListName] = useState('Mis Favoritos');
     const [modalLoading, setModalLoading] = useState(false);
     const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+
+    const handleStarClick = (aspect: string, star: number) => {
+        setRatingVal(prev => ({ ...prev, [aspect]: star }));
+    };
 
     const ASPECT_DESCRIPTIONS: Record<string, string> = {
         calidad: "Evalúa la frescura de los ingredientes y el sabor de los platos.",
@@ -398,10 +601,16 @@ const HistoryPage: React.FC = () => {
         }
     };
 
-    // ── Pre-existing Modals Helper Components ─────────────────────────────────
     const renderRatingModal = () => {
         if (!isRatingModalOpen || !selectedEntryForRating) return null;
         const isEdit = ratedPlaceIds.has(selectedEntryForRating.place_id);
+
+        let submitButtonText = 'Enviar valoración';
+        if (modalLoading) {
+            submitButtonText = 'Guardando...';
+        } else if (isEdit) {
+            submitButtonText = 'Guardar cambios';
+        }
 
         return (
             <div className="valuation-overlay">
@@ -457,26 +666,20 @@ const HistoryPage: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                            <Star
-                                                key={star}
-                                                size={22}
-                                                fill={star <= (ratingVal as any)[aspect] ? "#ffb400" : "transparent"}
-                                                color={star <= (ratingVal as any)[aspect] ? "#ffb400" : "var(--muted)"}
-                                                onClick={() => setRatingVal({ ...ratingVal, [aspect]: star })}
-                                                style={{ cursor: 'pointer', transition: 'all 0.2s ease', opacity: star <= (ratingVal as any)[aspect] ? 1 : 0.8 }}
-                                            />
-                                        ))}
-                                    </div>
+                                    <AspectStarsRow
+                                        aspect={aspect}
+                                        ratingVal={ratingVal}
+                                        onStarClick={handleStarClick}
+                                    />
                                 </div>
                             );
                         })}
                     </div>
 
                     <div className="comment-section-premium">
-                        <label className="comment-label-premium">Comentario (opcional)</label>
+                        <label htmlFor="comment-textarea" className="comment-label-premium">Comentario (opcional)</label>
                         <textarea
+                            id="comment-textarea"
                             className="textarea-premium"
                             value={ratingComment}
                             onChange={(e) => setRatingComment(e.target.value)}
@@ -490,7 +693,7 @@ const HistoryPage: React.FC = () => {
                         disabled={modalLoading || Object.values(ratingVal).includes(0)}
                         className={`btn-submit-valuation ${Object.values(ratingVal).includes(0) ? '' : 'active'}`}
                     >
-                        {modalLoading ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Enviar valoración'}
+                        {submitButtonText}
                     </button>
                 </div>
             </div>
@@ -625,129 +828,31 @@ const HistoryPage: React.FC = () => {
         );
     }
 
-    // ── Main List Render ──────────────────────────────────────────────────────
+// ── Main List Render ──────────────────────────────────────────────────────
     return (
         <div className="page-screen">
             <TopBar showMenu={true} />
 
             <main className="home-body" style={{ padding: '0 var(--space-5) var(--space-8)' }}>
-                {/* Header Section */}
-                <div style={{ paddingTop: 'var(--space-6)', textAlign: 'center', marginBottom: '2rem' }}>
-                    <div style={{
-                        width: 64, height: 64, borderRadius: 18,
-                        background: 'linear-gradient(135deg, #5b6af0, #3dadd4)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        margin: '0 auto 1rem', boxShadow: '0 8px 24px rgba(91,106,240,0.3)',
-                        animation: 'scaleUp 0.3s ease'
-                    }}>
-                        <Clock size={28} color="white" />
-                    </div>
-                    <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800 }}>Mi historial</h1>
-                    <p style={{ margin: '0.4rem 0 0', fontSize: '0.95rem', color: 'var(--muted)' }}>
-                        Restaurantes que has visitado o seleccionado
-                    </p>
-                </div>
-
-                {/* Search Bar */}
-                <div className="history-filter-row">
-                    <div className="internal-search-box" style={{ flex: 1, marginBottom: 0 }}>
-                        <Search className="search-icon" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Buscar en historial..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <button
-                        className={`history-filter-btn ${statusFilter === 'all' ? '' : 'active'}`}
-                        onClick={cycleFilter}
-                    >
-                        <Filter size={16} />
-                        {statusFilter === 'all' ? 'Filtrar' : statusFilter === 'rated' ? 'Reseñados' : 'Sin reseña'}
-                    </button>
-                </div>
-
-                {loading ? (
-                    <div style={{ textAlign: 'center', padding: '3rem' }}>
-                        <div className="loading-spinner" style={{ border: '4px solid var(--border)', borderTop: '4px solid var(--accent)', borderRadius: '50%', width: 30, height: 30, animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
-                        <p style={{ color: 'var(--muted)' }}>Cargando historial...</p>
-                    </div>
-                ) : error ? (
-                    <div className="message error" style={{ textAlign: 'center', padding: '2rem', color: 'var(--error)' }}>
-                        {error}
-                    </div>
-                ) : (
-                    <div style={{ animation: 'fadeIn 0.3s ease' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span style={{ fontSize: 'var(--font-sm)', color: 'var(--muted)', fontWeight: 600 }}>
-                                {historyEntries.length} restaurantes
-                            </span>
-                            {unratedCount > 0 && (
-                                <div style={{ background: 'rgba(176,125,58,0.1)', color: '#d4a045', padding: '4px 12px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
-                                    {unratedCount} sin reseña
-                                </div>
-                            )}
-                        </div>
-
-                        {groups.map(([key, group]) => {
-                            const isOpen = expandedGroups.has(key);
-                            return (
-                                <div key={key}>
-                                    <button
-                                        className="history-group-header"
-                                        onClick={() => toggleGroup(key)}
-                                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                                    >
-                                        <span className="history-group-title">{group.label}</span>
-                                        <div className="history-group-meta">
-                                            <span>{group.entries.length} restaurantes</span>
-                                            {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                        </div>
-                                    </button>
-
-                                    {isOpen && (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0.5rem 0 1rem' }}>
-                                            {group.entries.map((entry) => {
-                                                const isRated = ratedPlaceIds.has(entry.place_id);
-                                                const visitDate = new Date(entry.visited_at || '');
-
-                                                return (
-                                                    <RestaurantCompactCard
-                                                        key={entry.id}
-                                                        name={entry.name}
-                                                        rating={entry.rating}
-                                                        user_ratings_total={entry.user_ratings_total}
-                                                        address={entry.address}
-                                                        main_photo={entry.main_photo}
-                                                        onClick={() => { if (entry.place_id) setSearchParams({ detail: entry.place_id.toString() }); }}
-                                                        metaSlot={<span>• {visitDate.getDate()} {visitDate.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '')}</span>}
-                                                        actionSlot={
-                                                            <ItemMenu
-                                                                isRated={isRated}
-                                                                onRate={() => handleRateClick(entry)}
-                                                                onFavorite={() => handleAddToFavoritesClick(entry)}
-                                                                onRechoose={() => handleRechoose(entry)}
-                                                                onDelete={() => handleDeleteFromHistory(entry)}
-                                                                onDetails={() => { if (entry.place_id) setSearchParams({ detail: entry.place_id.toString() }); }}
-                                                            />
-                                                        }
-                                                    >
-                                                        <div style={{ position: 'absolute', top: '10px', right: '35px', zIndex: 10 }}>
-                                                            <div className={`status-badge ${isRated ? 'rated' : 'unrated'}`}>
-                                                                {isRated ? 'Reseñado' : 'Sin reseñar'}
-                                                            </div>
-                                                        </div>
-                                                    </RestaurantCompactCard>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                <HistoryOverview
+                    loading={loading}
+                    error={error}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    statusFilter={statusFilter}
+                    cycleFilter={cycleFilter}
+                    historyEntries={historyEntries}
+                    unratedCount={unratedCount}
+                    groups={groups}
+                    expandedGroups={expandedGroups}
+                    toggleGroup={toggleGroup}
+                    ratedPlaceIds={ratedPlaceIds}
+                    setSearchParams={setSearchParams}
+                    handleRateClick={handleRateClick}
+                    handleAddToFavoritesClick={handleAddToFavoritesClick}
+                    handleRechoose={handleRechoose}
+                    handleDeleteFromHistory={handleDeleteFromHistory}
+                />
             </main>
             {renderRatingModal()}
             {renderFavModal()}

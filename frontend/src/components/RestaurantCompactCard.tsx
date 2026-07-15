@@ -36,13 +36,21 @@ const RestaurantCompactCard: React.FC<RestaurantCompactCardProps> = ({
             className="restaurant-compact-card"
             style={{ width: '100%', display: 'flex', alignItems: 'center', position: 'relative', textAlign: 'left', padding: 0 }}
         >
-            <div
+            <button
                 onClick={onClick}
-                role="button"
-                tabIndex={0}
                 aria-label={`Ver detalles de ${name}`}
-                style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
+                style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    fontFamily: 'inherit',
+                    color: 'inherit',
+                    textAlign: 'left'
+                }}
             >
                 {children}
                 <div className="compact-img-box">
@@ -64,11 +72,11 @@ const RestaurantCompactCard: React.FC<RestaurantCompactCardProps> = ({
                                 <span>({user_ratings_total})</span>
                             </>
                         )}
-                        {metaSlot ? metaSlot : (typeStr && <span>• {typeStr}</span>)}
+                        {metaSlot ?? (typeStr && <span>• {typeStr}</span>)}
                     </div>
                     <div className="compact-address">{address}</div>
                 </div>
-            </div>
+            </button>
 
             {actionSlot && (
                 <div style={{ zIndex: 20 }}>

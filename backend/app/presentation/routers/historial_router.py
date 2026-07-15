@@ -118,7 +118,7 @@ async def add_to_historial(
     }
 
 
-@router.delete("/{entry_id}", status_code=204)
+@router.delete("/{entry_id}", status_code=204, responses={404: {"description": "Entrada de historial no encontrada o no autorizada"}})
 async def delete_from_historial(
     entry_id: int,
     current_user: Annotated[Usuario, Depends(get_current_user)],

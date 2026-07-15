@@ -127,6 +127,118 @@ const [expandedEntryId, setExpandedEntryId] = useState<number | null>(null);
         </div>
     );
 
+    const renderMainContent = () => {
+        if (loading) {
+            return (
+                <div style={{ textAlign: 'center', padding: '3rem' }}>
+                    <div className="loading-spinner" style={{ border: '4px solid var(--border)', borderTop: '4px solid var(--accent)', borderRadius: '50%', width: 30, height: 30, animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
+                    <p style={{ color: 'var(--muted)' }}>Cargando valoraciones...</p>
+                </div>
+            );
+        }
+
+        if (error) {
+            return <div className="message error">{error}</div>;
+        }
+
+        return (
+            <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                <div style={{ marginBottom: '1rem' }}>
+                    <span style={{ fontSize: 'var(--font-sm)', color: 'var(--muted)', fontWeight: 600 }}>
+                        {valoraciones.length} {valoraciones.length === 1 ? 'valoración' : 'valoraciones'}
+                    </span>
+                </div>
+
+                {valoraciones.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--muted)', background: 'var(--surface-2)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--border)' }}>
+                        <Star size={48} style={{ opacity: 0.1, marginBottom: '1rem' }} />
+                        <p style={{ fontWeight: 600 }}>Aún no has valorado ningún restaurante.</p>
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {valoraciones.map((val) => {
+                            const restaurant = val.restaurant || {};
+                            const types = restaurant.types || [];
+                            const typeStr = types.length > 0 ? types[0].replaceAll('_', ' ').replaceAll(/\b\w/g, (l: string) => l.toUpperCase()) : 'Restaurante';
+                            const isExpanded = expandedEntryId === val.id;
+
+                            return (
+                                <div key={val.id} style={{ display: 'flex', flexDirection: 'column', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                                    <RestaurantCompactCard
+                                        name={restaurant.name || 'Restaurante'}
+                                        address={restaurant.address || ''}
+                                        main_photo={restaurant.main_photo}
+                                        onClick={() => setExpandedEntryId(isExpanded ? null : val.id)}
+                                        metaSlot={
+                                            <>
+                                                <span style={{ color: 'var(--accent-light)' }}>{typeStr}</span>
+                                                <span>• {getRelativeTime(val.fecha)}</span>
+                                            </>
+                                        }
+                                        actionSlot={
+                                            <div style={{ color: 'var(--muted)', opacity: 0.5, marginLeft: 'auto' }}>
+                                                {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                                            </div>
+                                        }
+                                    />
+
+                                    {isExpanded && (
+                                        <div style={{ 
+                                            padding: '1.5rem', background: 'var(--surface-2)', 
+                                            borderTop: '1px solid var(--border)', 
+                                            animation: 'fadeSlideIn 0.3s ease' 
+                                        }}>
+                                            <div className="ratings-grid">
+                                                <div className="rating-item">
+                                                    <span className="rating-item-label">Calidad</span>
+                                                    {renderStars(val.calidad)}
+                                                </div>
+                                                <div className="rating-item">
+                                                    <span className="rating-item-label">Precio</span>
+                                                    {renderStars(val.precio)}
+                                                </div>
+                                                <div className="rating-item">
+                                                    <span className="rating-item-label">Higiene</span>
+                                                    {renderStars(val.higiene)}
+                                                </div>
+                                                <div className="rating-item">
+                                                    <span className="rating-item-label">Trato</span>
+                                                    {renderStars(val.trato)}
+                                                </div>
+                                            </div>
+
+                                            {val.comentario && (
+                                                <div className="review-comment-bubble">
+                                                    &ldquo;{val.comentario}&rdquo;
+                                                </div>
+                                            )}
+
+                                            <div className="review-actions-row">
+                                                <button 
+                                                    onClick={() => handleRateClick(val)}
+                                                    className="btn-primary"
+                                                    style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                                                >
+                                                    <Edit3 size={16} /> Editar reseña
+                                                </button>
+                                                <button 
+                                                    onClick={(e) => handleDeleteRating(val, e)}
+                                                    className="btn-review-delete"
+                                                >
+                                                    <Trash2 size={16} /> Eliminar reseña
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="page-screen">
             <TopBar showMenu={true} />
@@ -149,109 +261,7 @@ const [expandedEntryId, setExpandedEntryId] = useState<number | null>(null);
                     </p>
                 </div>
 
-                {loading ? (
-                    <div style={{ textAlign: 'center', padding: '3rem' }}>
-                        <div className="loading-spinner" style={{ border: '4px solid var(--border)', borderTop: '4px solid var(--accent)', borderRadius: '50%', width: 30, height: 30, animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
-                        <p style={{ color: 'var(--muted)' }}>Cargando valoraciones...</p>
-                    </div>
-                ) : error ? (
-                    <div className="message error">{error}</div>
-                ) : (
-                    <div style={{ animation: 'fadeIn 0.3s ease' }}>
-                        <div style={{ marginBottom: '1rem' }}>
-                            <span style={{ fontSize: 'var(--font-sm)', color: 'var(--muted)', fontWeight: 600 }}>
-                                {valoraciones.length} {valoraciones.length === 1 ? 'valoración' : 'valoraciones'}
-                            </span>
-                        </div>
-
-                        {valoraciones.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--muted)', background: 'var(--surface-2)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--border)' }}>
-                                <Star size={48} style={{ opacity: 0.1, marginBottom: '1rem' }} />
-                                <p style={{ fontWeight: 600 }}>Aún no has valorado ningún restaurante.</p>
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                {valoraciones.map((val) => {
-                                    const restaurant = val.restaurant || {};
-                                    const types = restaurant.types || [];
-                                    const typeStr = types.length > 0 ? types[0].replaceAll('_', ' ').replaceAll(/\b\w/g, (l: string) => l.toUpperCase()) : 'Restaurante';
-                                    const isExpanded = expandedEntryId === val.id;
-
-                                    return (
-                                        <div key={val.id} style={{ display: 'flex', flexDirection: 'column', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-                                            <RestaurantCompactCard
-                                                name={restaurant.name || 'Restaurante'}
-                                                address={restaurant.address || ''}
-                                                main_photo={restaurant.main_photo}
-                                                onClick={() => setExpandedEntryId(isExpanded ? null : val.id)}
-                                                metaSlot={
-                                                    <>
-                                                        <span style={{ color: 'var(--accent-light)' }}>{typeStr}</span>
-                                                        <span>• {getRelativeTime(val.fecha)}</span>
-                                                    </>
-                                                }
-                                                actionSlot={
-                                                    <div style={{ color: 'var(--muted)', opacity: 0.5, marginLeft: 'auto' }}>
-                                                        {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                                                    </div>
-                                                }
-                                            />
-
-                                            {isExpanded && (
-                                                <div style={{ 
-                                                    padding: '1.5rem', background: 'var(--surface-2)', 
-                                                    borderTop: '1px solid var(--border)', 
-                                                    animation: 'fadeSlideIn 0.3s ease' 
-                                                }}>
-                                                    <div className="ratings-grid">
-                                                        <div className="rating-item">
-                                                            <span className="rating-item-label">Calidad</span>
-                                                            {renderStars(val.calidad)}
-                                                        </div>
-                                                        <div className="rating-item">
-                                                            <span className="rating-item-label">Precio</span>
-                                                            {renderStars(val.precio)}
-                                                        </div>
-                                                        <div className="rating-item">
-                                                            <span className="rating-item-label">Higiene</span>
-                                                            {renderStars(val.higiene)}
-                                                        </div>
-                                                        <div className="rating-item">
-                                                            <span className="rating-item-label">Trato</span>
-                                                            {renderStars(val.trato)}
-                                                        </div>
-                                                    </div>
-
-                                                    {val.comentario && (
-                                                        <div className="review-comment-bubble">
-                                                            &ldquo;{val.comentario}&rdquo;
-                                                        </div>
-                                                    )}
-
-                                                    <div className="review-actions-row">
-                                                        <button 
-                                                            onClick={() => handleRateClick(val)}
-                                                            className="btn-primary"
-                                                            style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                                                        >
-                                                            <Edit3 size={16} /> Editar reseña
-                                                        </button>
-                                                        <button 
-                                                            onClick={(e) => handleDeleteRating(val, e)}
-                                                            className="btn-review-delete"
-                                                        >
-                                                            <Trash2 size={16} /> Eliminar reseña
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                )}
+                {renderMainContent()}
             </main>
 
             {/* Modal Premium para valorar restaurante */}
@@ -290,12 +300,12 @@ const [expandedEntryId, setExpandedEntryId] = useState<number | null>(null);
                                                 <IconComp size={20} />
                                             </div>
                                             <div className="aspect-info-premium">
-                                                <div 
+                                                <button 
+                                                    type="button"
                                                     className="rating-label-with-help"
                                                     onClick={() => setActiveTooltip(activeTooltip === aspect ? null : aspect)}
                                                     onKeyDown={(e) => e.key === 'Enter' && setActiveTooltip(activeTooltip === aspect ? null : aspect)}
-                                                    role="button"
-                                                    tabIndex={0}
+                                                    style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', position: 'relative', textAlign: 'left' }}
                                                 >
                                                     <span className="aspect-name-premium" style={{ textTransform: 'capitalize', marginRight: '0.4rem' }}>
                                                         {aspect}
@@ -307,7 +317,7 @@ const [expandedEntryId, setExpandedEntryId] = useState<number | null>(null);
                                                             {ASPECT_DESCRIPTIONS[aspect]}
                                                         </div>
                                                     )}
-                                                </div>
+                                                </button>
                                             </div>
                                         </div>
 
@@ -329,8 +339,9 @@ const [expandedEntryId, setExpandedEntryId] = useState<number | null>(null);
                         </div>
 
                         <div className="comment-section-premium">
-                            <label className="comment-label-premium">Comentario (opcional)</label>
+                            <label htmlFor="valuation-comment-textarea" className="comment-label-premium">Comentario (opcional)</label>
                             <textarea
+                                id="valuation-comment-textarea"
                                 className="textarea-premium"
                                 value={ratingComment}
                                 onChange={(e) => setRatingComment(e.target.value)}

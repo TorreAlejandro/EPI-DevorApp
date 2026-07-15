@@ -37,9 +37,9 @@ const SideMenu: React.FC = () => {
   // Aplicar tema real al documento
   useEffect(() => {
     if (theme === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.dataset.theme = 'light';
     } else {
-      document.documentElement.removeAttribute('data-theme');
+      delete document.documentElement.dataset.theme;
     }
     localStorage.setItem('devorapp_theme', theme);
   }, [theme]);
@@ -47,7 +47,7 @@ const SideMenu: React.FC = () => {
   // Aplicar tamaño de letra real al documento
   useEffect(() => {
     if (fontSize === 'M') {
-      document.documentElement.removeAttribute('data-font-size');
+      delete document.documentElement.dataset.fontSize;
     } else {
       document.documentElement.dataset.fontSize = fontSize;
     }

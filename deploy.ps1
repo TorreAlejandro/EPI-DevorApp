@@ -165,9 +165,21 @@ if ($RunBackend) {
 
     Show-Step "Installing keras-api dependencies (pip)"
     Push-Location "$Root\keras-api"
+    if (-not (Test-Path ".venv") -and -not (Test-Path "venv")) {
+        Show-Step "Creating virtual environment (.venv)..."
+        Run "venv creation" { python -m venv .venv }
+    }
     $pythonCmd = "python"
-    if (Test-Path "venv\Scripts\python.exe") {
+    if (Test-Path ".venv\Scripts\python.exe") {
+        $pythonCmd = ".venv\Scripts\python.exe"
+    } elseif (Test-Path "venv\Scripts\python.exe") {
         $pythonCmd = "venv\Scripts\python.exe"
+    }
+    # Verify Python version compatibility (TensorFlow 2.15 requires Python >= 3.9 and < 3.13)
+    & $pythonCmd -c "import sys; exit(0 if (3, 9) <= sys.version_info < (3, 13) else 1)"
+    if ($LASTEXITCODE -ne 0) {
+        $ver = & $pythonCmd -c "import sys; print(sys.version.split()[0])"
+        Show-Fail "Incompatible Python version ($ver)! TensorFlow requires Python >= 3.9 and < 3.13. Please configure Python 3.10/3.11/3.12."
     }
     Run "pip install" { & $pythonCmd -m pip install -r requirements.txt }
     Show-Ok "Keras API dependencies installed"
@@ -226,7 +238,7 @@ if ($Mode -eq "docker") {
 
         Show-Step "Starting keras-api - FastAPI (http://localhost:8001)"
         Start-Process powershell -ArgumentList "-NoExit", "-Command",
-            "Set-Location '$Root\keras-api'; if (Test-Path 'venv\Scripts\python.exe') { venv\Scripts\python.exe -m uvicorn main:app --reload --port 8001 } else { python -m uvicorn main:app --reload --port 8001 }"
+            "Set-Location '$Root\keras-api'; if (Test-Path '.venv\Scripts\python.exe') { .venv\Scripts\python.exe -m uvicorn main:app --reload --port 8001 } elseif (Test-Path 'venv\Scripts\python.exe') { venv\Scripts\python.exe -m uvicorn main:app --reload --port 8001 } else { python -m uvicorn main:app --reload --port 8001 }"
     }
 
     if ($RunFrontend) {

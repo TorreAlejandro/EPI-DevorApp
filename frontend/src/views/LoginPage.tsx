@@ -31,6 +31,337 @@ const GoogleLogo: React.FC = () => (
   </svg>
 );
 
+// ── Sub-component: ResetPasswordForm ──────────────────────────────────────────
+interface ResetPasswordFormProps {
+  onSubmit: (e: React.FormEvent) => void;
+  resetEmail: string;
+  setResetEmail: (v: string) => void;
+  resetLoading: boolean;
+  resetMessage: any;
+  onBackToLogin: () => void;
+}
+
+const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
+  onSubmit,
+  resetEmail,
+  setResetEmail,
+  resetLoading,
+  resetMessage,
+  onBackToLogin,
+}) => {
+  return (
+    <form
+      id="reset-form"
+      onSubmit={onSubmit}
+      className="auth-form"
+      noValidate
+      aria-label="Formulario de recuperación de contraseña"
+    >
+      <div className="form-group">
+        <label htmlFor="resetEmail" className="form-label">
+          Correo electrónico
+        </label>
+        <div className="form-input-wrap">
+          <span className="form-input-icon" aria-hidden="true">
+            <Mail size={18} />
+          </span>
+          <input
+            id="resetEmail"
+            type="email"
+            className="form-input has-icon-left"
+            placeholder="tu@email.com"
+            autoComplete="email"
+            value={resetEmail}
+            onChange={(e) => setResetEmail(e.target.value)}
+            required
+            disabled={resetLoading}
+            aria-required="true"
+          />
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        id="reset-submit-btn"
+        className={`btn-primary${resetLoading ? ' loading' : ''}`}
+        disabled={resetLoading}
+      >
+        {!resetLoading && 'Enviar enlace'}
+      </button>
+
+      {resetMessage && (
+        <div className={`message ${resetMessage.type}`} role="alert" aria-live="polite">
+          {resetMessage.type === 'error'
+            ? <AlertCircle size={16} aria-hidden="true" />
+            : <CheckCircle2 size={16} aria-hidden="true" />}
+          {resetMessage.text}
+        </div>
+      )}
+
+      <button
+        type="button"
+        id="back-to-login-btn"
+        className="btn-back"
+        onClick={onBackToLogin}
+      >
+        <ArrowLeft size={16} aria-hidden="true" />
+        Volver al inicio de sesión
+      </button>
+    </form>
+  );
+};
+
+// ── Sub-component: LoginForm ──────────────────────────────────────────────────
+interface LoginFormProps {
+  onSubmit: (e: React.FormEvent) => void;
+  identifier: string;
+  setIdentifier: (v: string) => void;
+  password: string;
+  setPassword: (v: string) => void;
+  loginLoading: boolean;
+  loginMessage: any;
+  showPassword: boolean;
+  setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
+  onForgotPassword: () => void;
+  handleGoogleLogin: () => void;
+  googleLoading: boolean;
+  googleError: string | null;
+}
+
+const LoginForm: React.FC<LoginFormProps> = ({
+  onSubmit,
+  identifier,
+  setIdentifier,
+  password,
+  setPassword,
+  loginLoading,
+  loginMessage,
+  showPassword,
+  setShowPassword,
+  onForgotPassword,
+  handleGoogleLogin,
+  googleLoading,
+  googleError,
+}) => {
+  return (
+    <>
+      <form
+        id="login-form"
+        onSubmit={onSubmit}
+        className="auth-form"
+        noValidate
+        aria-label="Formulario de inicio de sesión"
+      >
+        {/* Email / usuario */}
+        <div className="form-group">
+          <label htmlFor="identifier" className="form-label">
+            Email o usuario
+          </label>
+          <div className="form-input-wrap">
+            <span className="form-input-icon" aria-hidden="true">
+              <Mail size={18} />
+            </span>
+            <input
+              id="identifier"
+              type="text"
+              className="form-input has-icon-left"
+              placeholder="tu@email.com"
+              autoComplete="username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              required
+              disabled={loginLoading}
+              aria-required="true"
+            />
+          </div>
+        </div>
+
+        {/* Contraseña */}
+        <div className="form-group">
+          <div className="form-label-row">
+            <label htmlFor="password" className="form-label">
+              Contraseña
+            </label>
+            <button
+              type="button"
+              id="forgot-password-btn"
+              className="forgot-link"
+              onClick={onForgotPassword}
+              aria-label="Recuperar contraseña olvidada"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+          <div className="form-input-wrap">
+            <span className="form-input-icon" aria-hidden="true">
+              <Lock size={18} />
+            </span>
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              className="form-input has-icon-left has-icon-right"
+              placeholder="••••••••"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loginLoading}
+              aria-required="true"
+            />
+            <button
+              type="button"
+              id="toggle-password-btn"
+              className="input-action-btn"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            >
+              {showPassword
+                ? <EyeOff size={18} aria-hidden="true" />
+                : <Eye size={18} aria-hidden="true" />}
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          id="login-submit-btn"
+          className={`btn-primary${loginLoading ? ' loading' : ''}`}
+          disabled={loginLoading}
+        >
+          {!loginLoading && 'Entrar'}
+        </button>
+
+        {loginMessage && (
+          <div className={`message ${loginMessage.type}`} role="alert" aria-live="polite">
+            {loginMessage.type === 'error'
+              ? <AlertCircle size={16} aria-hidden="true" />
+              : <CheckCircle2 size={16} aria-hidden="true" />}
+            {loginMessage.text}
+          </div>
+        )}
+      </form>
+
+      {/* Social auth */}
+      <div className="auth-divider" aria-hidden="true">
+        <span className="line" />
+        <span>o</span>
+        <span className="line" />
+      </div>
+
+      {googleError && (
+        <div className="message error" role="alert" style={{ marginBottom: '1rem' }}>
+          <AlertCircle size={16} /> {googleError}
+        </div>
+      )}
+      
+      <button
+        type="button"
+        id="google-login-btn"
+        className="btn-social"
+        onClick={handleGoogleLogin}
+        disabled={googleLoading}
+        aria-label="Iniciar sesión con Google"
+      >
+        {googleLoading ? 'Cargando...' : (
+          <>
+            <GoogleLogo />
+            Continuar con Google
+          </>
+        )}
+      </button>
+
+      <p className="auth-footer">
+        ¿No tienes cuenta?{' '}
+        <Link to="/register" id="go-register-link">
+          Regístrate
+        </Link>
+      </p>
+    </>
+  );
+};
+
+// ── Sub-component: GoogleUsernameModal ───────────────────────────────────────
+interface GoogleUsernameModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  newUsername: string;
+  setNewUsername: (v: string) => void;
+  newUbicacion: string;
+  setNewUbicacion: (v: string) => void;
+  googleError: string | null;
+  googleLoading: boolean;
+  submitGoogleUsername: () => void;
+}
+
+const GoogleUsernameModal: React.FC<GoogleUsernameModalProps> = ({
+  isOpen,
+  onClose,
+  newUsername,
+  setNewUsername,
+  newUbicacion,
+  setNewUbicacion,
+  googleError,
+  googleLoading,
+  submitGoogleUsername,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="sidemenu-overlay open" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+      <div
+        className="sidemenu-backdrop"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="auth-content" style={{ position: 'relative', zIndex: 10000, background: 'var(--bg)', padding: '2rem', borderRadius: '1rem', width: '90%', maxWidth: '400px' }}>
+        <h2>Elige tu nombre de usuario</h2>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem', fontSize: '0.9rem' }}>
+          Ya casi terminamos. Solo necesitas elegir un nombre de usuario y tu ubicación preferida para completar tu registro con Google.
+        </p>
+        <div className="form-group">
+          <label className="form-label" htmlFor="modal-username-input">Nombre de usuario <span style={{color:'var(--error)'}}>*</span></label>
+          <input
+            id="modal-username-input"
+            type="text"
+            className="form-input"
+            placeholder="@usuario"
+            value={newUsername}
+            onChange={(e) => setNewUsername(e.target.value)}
+          />
+        </div>
+        <div className="form-group" style={{ marginTop: '0.75rem' }}>
+          <label className="form-label" htmlFor="modal-ubicacion-input">Ubicación preferida <span style={{color:'var(--error)'}}>*</span></label>
+          <Autocomplete
+            apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
+            onPlaceSelected={(place) => {
+              if (place?.formatted_address) {
+                setNewUbicacion(place.formatted_address);
+              }
+            }}
+            onChange={(e: any) => setNewUbicacion(e.target.value)}
+            options={{ types: [] }}
+            className="form-input"
+            placeholder="Ciudad, barrio o dirección..."
+            defaultValue={newUbicacion}
+            style={{ position: 'relative', zIndex: 10001 }}
+          />
+        </div>
+        {googleError && (
+          <div className="message error" role="alert" style={{ marginBottom: '1rem' }}>
+            <AlertCircle size={16} /> {googleError}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+          <button className="btn-back" onClick={onClose} disabled={googleLoading}>Cancelar</button>
+          <button className={`btn-primary${googleLoading ? ' loading' : ''}`} onClick={submitGoogleUsername} disabled={googleLoading || !newUsername.trim() || !newUbicacion.trim()}>
+            {!googleLoading && 'Completar registro'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ─── LoginPage ───────────────────────────────────── */
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -132,262 +463,46 @@ const LoginPage: React.FC = () => {
             )}
           </div>
 
-          {/* ══ RESET FORM ══ */}
           {isResettingPassword ? (
-            <form
-              id="reset-form"
+            <ResetPasswordForm
               onSubmit={submitPasswordReset}
-              className="auth-form"
-              noValidate
-              aria-label="Formulario de recuperación de contraseña"
-            >
-              <div className="form-group">
-                <label htmlFor="resetEmail" className="form-label">
-                  Correo electrónico
-                </label>
-                <div className="form-input-wrap">
-                  <span className="form-input-icon" aria-hidden="true">
-                    <Mail size={18} />
-                  </span>
-                  <input
-                    id="resetEmail"
-                    type="email"
-                    className="form-input has-icon-left"
-                    placeholder="tu@email.com"
-                    autoComplete="email"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    required
-                    disabled={resetLoading}
-                    aria-required="true"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                id="reset-submit-btn"
-                className={`btn-primary${resetLoading ? ' loading' : ''}`}
-                disabled={resetLoading}
-              >
-                {!resetLoading && 'Enviar enlace'}
-              </button>
-
-              {resetMessage && (
-                <div className={`message ${resetMessage.type}`} role="alert" aria-live="polite">
-                  {resetMessage.type === 'error'
-                    ? <AlertCircle size={16} aria-hidden="true" />
-                    : <CheckCircle2 size={16} aria-hidden="true" />}
-                  {resetMessage.text}
-                </div>
-              )}
-
-              <button
-                type="button"
-                id="back-to-login-btn"
-                className="btn-back"
-                onClick={handleToggleReset}
-              >
-                <ArrowLeft size={16} aria-hidden="true" />
-                Volver al inicio de sesión
-              </button>
-            </form>
-
+              resetEmail={resetEmail}
+              setResetEmail={setResetEmail}
+              resetLoading={resetLoading}
+              resetMessage={resetMessage}
+              onBackToLogin={handleToggleReset}
+            />
           ) : (
-
-            /* ══ LOGIN FORM ══ */
-            <>
-              <form
-                id="login-form"
-                onSubmit={submitLogin}
-                className="auth-form"
-                noValidate
-                aria-label="Formulario de inicio de sesión"
-              >
-                {/* Email / usuario */}
-                <div className="form-group">
-                  <label htmlFor="identifier" className="form-label">
-                    Email o usuario
-                  </label>
-                  <div className="form-input-wrap">
-                    <span className="form-input-icon" aria-hidden="true">
-                      <Mail size={18} />
-                    </span>
-                    <input
-                      id="identifier"
-                      type="text"
-                      className="form-input has-icon-left"
-                      placeholder="tu@email.com"
-                      autoComplete="username"
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      required
-                      disabled={loginLoading}
-                      aria-required="true"
-                    />
-                  </div>
-                </div>
-
-                {/* Contraseña */}
-                <div className="form-group">
-                  <div className="form-label-row">
-                    <label htmlFor="password" className="form-label">
-                      Contraseña
-                    </label>
-                    <button
-                      type="button"
-                      id="forgot-password-btn"
-                      className="forgot-link"
-                      onClick={handleToggleReset}
-                      aria-label="Recuperar contraseña olvidada"
-                    >
-                      ¿Olvidaste tu contraseña?
-                    </button>
-                  </div>
-                  <div className="form-input-wrap">
-                    <span className="form-input-icon" aria-hidden="true">
-                      <Lock size={18} />
-                    </span>
-                    <input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      className="form-input has-icon-left has-icon-right"
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={loginLoading}
-                      aria-required="true"
-                    />
-                    <button
-                      type="button"
-                      id="toggle-password-btn"
-                      className="input-action-btn"
-                      onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                    >
-                      {showPassword
-                        ? <EyeOff size={18} aria-hidden="true" />
-                        : <Eye size={18} aria-hidden="true" />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  id="login-submit-btn"
-                  className={`btn-primary${loginLoading ? ' loading' : ''}`}
-                  disabled={loginLoading}
-                >
-                  {!loginLoading && 'Entrar'}
-                </button>
-
-                {loginMessage && (
-                  <div className={`message ${loginMessage.type}`} role="alert" aria-live="polite">
-                    {loginMessage.type === 'error'
-                      ? <AlertCircle size={16} aria-hidden="true" />
-                      : <CheckCircle2 size={16} aria-hidden="true" />}
-                    {loginMessage.text}
-                  </div>
-                )}
-              </form>
-
-              {/* Social auth */}
-              <div className="auth-divider" aria-hidden="true">
-                <span className="line" />
-                <span>o</span>
-                <span className="line" />
-              </div>
-
-              {googleError && (
-                <div className="message error" role="alert" style={{ marginBottom: '1rem' }}>
-                  <AlertCircle size={16} /> {googleError}
-                </div>
-              )}
-              
-              <button
-                type="button"
-                id="google-login-btn"
-                className="btn-social"
-                onClick={() => handleGoogleLogin()}
-                disabled={googleLoading}
-                aria-label="Iniciar sesión con Google"
-              >
-                {googleLoading ? 'Cargando...' : (
-                  <>
-                    <GoogleLogo />
-                    Continuar con Google
-                  </>
-                )}
-              </button>
-
-              <p className="auth-footer">
-                ¿No tienes cuenta?{' '}
-                <Link to="/register" id="go-register-link">
-                  Regístrate
-                </Link>
-              </p>
-            </>
+            <LoginForm
+              onSubmit={submitLogin}
+              identifier={identifier}
+              setIdentifier={setIdentifier}
+              password={password}
+              setPassword={setPassword}
+              loginLoading={loginLoading}
+              loginMessage={loginMessage}
+              showPassword={showPassword}
+              setShowPassword={setShowPassword}
+              onForgotPassword={handleToggleReset}
+              handleGoogleLogin={handleGoogleLogin}
+              googleLoading={googleLoading}
+              googleError={googleError}
+            />
           )}
         </div>
       </main>
 
-      {/* Modal para nuevo nombre de usuario */}
-      {showUsernameModal && (
-        <div className="sidemenu-overlay open" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div
-            className="sidemenu-backdrop"
-            onClick={() => setShowUsernameModal(false)}
-            aria-hidden="true"
-          />
-          <div className="auth-content" style={{ position: 'relative', zIndex: 10000, background: 'var(--bg)', padding: '2rem', borderRadius: '1rem', width: '90%', maxWidth: '400px' }}>
-            <h2>Elige tu nombre de usuario</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem', fontSize: '0.9rem' }}>
-              Ya casi terminamos. Solo necesitas elegir un nombre de usuario y tu ubicación preferida para completar tu registro con Google.
-            </p>
-            <div className="form-group">
-              <label className="form-label" htmlFor="modal-username-input">Nombre de usuario <span style={{color:'var(--error)'}}>*</span></label>
-              <input
-                id="modal-username-input"
-                type="text"
-                className="form-input"
-                placeholder="@usuario"
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-              />
-            </div>
-            <div className="form-group" style={{ marginTop: '0.75rem' }}>
-              <label className="form-label" htmlFor="modal-ubicacion-input">Ubicación preferida <span style={{color:'var(--error)'}}>*</span></label>
-              <Autocomplete
-                apiKey={import.meta.env.VITE_GOOGLE_API_KEY}
-                onPlaceSelected={(place) => {
-                  if (place?.formatted_address) {
-                    setNewUbicacion(place.formatted_address);
-                  }
-                }}
-                onChange={(e: any) => setNewUbicacion(e.target.value)}
-                options={{ types: [] }}
-                className="form-input"
-                placeholder="Ciudad, barrio o dirección..."
-                defaultValue={newUbicacion}
-                style={{ position: 'relative', zIndex: 10001 }}
-              />
-            </div>
-            {googleError && (
-              <div className="message error" role="alert" style={{ marginBottom: '1rem' }}>
-                <AlertCircle size={16} /> {googleError}
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-              <button className="btn-back" onClick={() => setShowUsernameModal(false)} disabled={googleLoading}>Cancelar</button>
-              <button className={`btn-primary${googleLoading ? ' loading' : ''}`} onClick={submitGoogleUsername} disabled={googleLoading || !newUsername.trim() || !newUbicacion.trim()}>
-                {!googleLoading && 'Completar registro'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <GoogleUsernameModal
+        isOpen={showUsernameModal}
+        onClose={() => setShowUsernameModal(false)}
+        newUsername={newUsername}
+        setNewUsername={setNewUsername}
+        newUbicacion={newUbicacion}
+        setNewUbicacion={setNewUbicacion}
+        googleError={googleError}
+        googleLoading={googleLoading}
+        submitGoogleUsername={submitGoogleUsername}
+      />
     </div>
   );
 };

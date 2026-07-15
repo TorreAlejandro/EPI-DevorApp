@@ -5,12 +5,13 @@ import pandas as pd
 import requests
 import tensorflow as tf
 from tensorflow.keras import layers, models, callbacks, regularizers
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
-print("============================================================")
+SEPARATOR = "============================================================"
+print(SEPARATOR)
 print(" SISTEMA DE RECOMENDACIÓN — PIPELINE DE PRODUCCIÓN")
-print("============================================================")
+print(SEPARATOR)
 
 # 1. CARGAR CONFIGURACIÓN
 # Intentar cargar desde keras-api/.env y también desde backend/.env
@@ -29,9 +30,9 @@ if DATABASE_URL.startswith("postgresql+asyncpg"):
 
 try:
     engine = create_engine(DATABASE_URL)
-    # Probar conexión
+    # Probar conexión ejecutando una consulta trivial
     with engine.connect() as connection:
-        pass
+        connection.execute(text("SELECT 1"))
 except Exception as e:
     print(f"❌ Error al conectar a la base de datos: {e}")
     exit(1)
@@ -142,7 +143,7 @@ try:
     with open("../backend/app/data/tags.json", "r", encoding="utf-8") as f:
         valid_tags = json.load(f)
         TAGS_ORDER = [tag["id"] for tag in valid_tags]
-except:
+except Exception:
     # Fallback genérico si no encuentra el archivo del backend
     # Cargar todos los tags posibles desde el archivo central
     try:
@@ -366,11 +367,11 @@ history = model.fit(
 
 final_loss = history.history["loss"][-1]
 final_mae  = history.history["mae"][-1]
-print(f"✅ Entrenamiento completado.")
+print("✅ Entrenamiento completado.")
 print(f"   Train MSE: {final_loss:.4f} | Train MAE: {final_mae:.4f}")
 
 save_path = "./models/modelo_prod.h5"
 model.save(save_path)
 print(f"\n💾 Modelo guardado en: {save_path}")
-print(f"📄 Mappings guardados en ./models/user_mapping.json y rest_mapping.json")
-print("============================================================")
+print("📄 Mappings guardados en ./models/user_mapping.json y rest_mapping.json")
+print(SEPARATOR)

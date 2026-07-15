@@ -120,6 +120,83 @@ const SavedForLaterPage: React.FC = () => {
         );
     }, [savedEntries, searchTerm]);
 
+    const renderMainContent = () => {
+        if (loading) {
+            return (
+                <div style={{ textAlign: 'center', padding: '3rem' }}>
+                    <div className="loading-spinner" style={{ border: '4px solid var(--border)', borderTop: '4px solid var(--accent)', borderRadius: '50%', width: 30, height: 30, animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
+                    <p style={{ color: 'var(--muted)' }}>Cargando lugares pendientes...</p>
+                </div>
+            );
+        }
+
+        if (error) {
+            return <div className="message error">{error}</div>;
+        }
+
+        return (
+            <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                {/* Summary Row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                    <span style={{ fontSize: 'var(--font-sm)', color: 'var(--muted)', fontWeight: 600 }}>
+                        {savedEntries.length} {savedEntries.length === 1 ? 'restaurante pendiente' : 'restaurantes pendientes'}
+                    </span>
+                </div>
+
+                {/* List Content */}
+                {savedEntries.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--muted)', background: 'var(--surface-2)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--border)' }}>
+                        <Bookmark size={48} style={{ opacity: 0.1, marginBottom: '1rem' }} />
+                        <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Tu lista está vacía</p>
+                        <p style={{ fontSize: 'var(--font-sm)' }}>Guarda restaurantes desde las recomendaciones para verlos aquí.</p>
+                    </div>
+                ) : filteredEntries.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>
+                        <Search size={40} style={{ opacity: 0.1, marginBottom: '1rem' }} />
+                        <p>No hay resultados para "{searchTerm}"</p>
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {filteredEntries.map((entry: any) => (
+                            <RestaurantCompactCard
+                                key={entry.id}
+                                name={entry.name}
+                                rating={entry.rating}
+                                user_ratings_total={entry.user_ratings_total}
+                                types={entry.types}
+                                address={entry.address}
+                                main_photo={entry.main_photo}
+                                onClick={() => { if (entry.id) setSearchParams({ detail: entry.id.toString() }); }}
+                                actionSlot={
+                                    <ItemMenu
+                                        onDelete={async () => {
+                                            const confirmed = await showConfirm(`¿Quitar ${entry.name}?`, 'Quitar lugar', true);
+                                            if (confirmed) {
+                                                await handleRemoveEntry(entry.id);
+                                                showNotification(`${entry.name} quitado de la lista`, 'success');
+                                            }
+                                        }}
+                                        onHistory={async () => {
+                                            try {
+                                                await historialService.addToHistorial(entry.place_id);
+                                                await handleRemoveEntry(entry.id);
+                                                showNotification(`Has elegido ${entry.name}`, 'success');
+                                                navigate('/home');
+                                            } catch (err: any) {
+                                                showNotification("Error: " + err.message, 'error');
+                                            }
+                                        }}
+                                        onDetails={() => { if (entry.id) setSearchParams({ detail: entry.id.toString() }); }}
+                                    />
+                                }
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     if (selectedEntryForDetail) {
         return (
             <div className="page-screen">
@@ -198,74 +275,7 @@ const SavedForLaterPage: React.FC = () => {
                     />
                 </div>
 
-                {loading ? (
-                    <div style={{ textAlign: 'center', padding: '3rem' }}>
-                        <div className="loading-spinner" style={{ border: '4px solid var(--border)', borderTop: '4px solid var(--accent)', borderRadius: '50%', width: 30, height: 30, animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
-                        <p style={{ color: 'var(--muted)' }}>Cargando lugares pendientes...</p>
-                    </div>
-                ) : error ? (
-                    <div className="message error">{error}</div>
-                ) : (
-                    <div style={{ animation: 'fadeIn 0.3s ease' }}>
-                        {/* Summary Row */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                            <span style={{ fontSize: 'var(--font-sm)', color: 'var(--muted)', fontWeight: 600 }}>
-                                {savedEntries.length} {savedEntries.length === 1 ? 'restaurante pendiente' : 'restaurantes pendientes'}
-                            </span>
-                        </div>
-
-                        {/* List Content */}
-                        {savedEntries.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--muted)', background: 'var(--surface-2)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--border)' }}>
-                                <Bookmark size={48} style={{ opacity: 0.1, marginBottom: '1rem' }} />
-                                <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Tu lista está vacía</p>
-                                <p style={{ fontSize: 'var(--font-sm)' }}>Guarda restaurantes desde las recomendaciones para verlos aquí.</p>
-                            </div>
-                        ) : filteredEntries.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>
-                                <Search size={40} style={{ opacity: 0.1, marginBottom: '1rem' }} />
-                                <p>No hay resultados para "{searchTerm}"</p>
-                            </div>
-                        ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    {filteredEntries.map((entry: any) => (
-                                        <RestaurantCompactCard
-                                            key={entry.id}
-                                            name={entry.name}
-                                            rating={entry.rating}
-                                            user_ratings_total={entry.user_ratings_total}
-                                            types={entry.types}
-                                            address={entry.address}
-                                            main_photo={entry.main_photo}
-                                            onClick={() => { if (entry.id) setSearchParams({ detail: entry.id.toString() }); }}
-                                            actionSlot={
-                                                <ItemMenu
-                                                    onDelete={async () => {
-                                                        const confirmed = await showConfirm(`¿Quitar ${entry.name}?`, 'Quitar lugar', true);
-                                                        if (confirmed) {
-                                                            await handleRemoveEntry(entry.id);
-                                                            showNotification(`${entry.name} quitado de la lista`, 'success');
-                                                        }
-                                                    }}
-                                                    onHistory={async () => {
-                                                        try {
-                                                            await historialService.addToHistorial(entry.place_id);
-                                                            await handleRemoveEntry(entry.id);
-                                                            showNotification(`Has elegido ${entry.name}`, 'success');
-                                                            navigate('/home');
-                                                        } catch (err: any) {
-                                                            showNotification("Error: " + err.message, 'error');
-                                                        }
-                                                    }}
-                                                    onDetails={() => { if (entry.id) setSearchParams({ detail: entry.id.toString() }); }}
-                                                />
-                                            }
-                                        />
-                                    ))}
-                                </div>
-                        )}
-                    </div>
-                )}
+                {renderMainContent()}
 
                 {/* Footer Action */}
                 <div style={{ marginTop: '2rem' }}>

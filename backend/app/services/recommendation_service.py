@@ -44,6 +44,15 @@ class RecommendationService:
     def _bayesian_rating(v, r, m=10, c=3.5):
         return (v / (v + m)) * r + (m / (v + m)) * c
 
+    @staticmethod
+    def _pearson_similarity(c, o):
+        if len(c) >= 2:
+            mc, mo = sum(c)/len(c), sum(o)/len(o)
+            num = sum((x-mc)*(y-mo) for x,y in zip(c, o))
+            den = (sum((x-mc)**2 for x in c) * sum((y-mo)**2 for y in o))**0.5
+            return num/den if den > 0 else 0.0
+        return 0.4 if abs(c[0]-o[0]) < 0.5 else 0.0
+
     # ── Flujo Principal de Búsqueda ───────────────────────────────────────────
     async def search_restaurants(self, request: RecommendationRequest, user_id: str = None) -> Dict[str, Any]:
         # 1. Preparar consulta
@@ -127,17 +136,12 @@ class RecommendationService:
         user_similarities = {}
         for ouid, rts in other_users.items():
             shared = set(user_direct_scores.keys()) & set(rts.keys())
-            if shared:
-                c, o = [user_direct_scores[p] for p in shared], [rts[p] for p in shared]
-                if len(shared) >= 2:
-                    mc, mo = sum(c)/len(c), sum(o)/len(o)
-                    num = sum((x-mc)*(y-mo) for x,y in zip(c,o))
-                    den = (sum((x-mc)**2 for x in c) * sum((y-mo)**2 for y in o))**0.5
-                    sim = num/den if den > 0 else 0.0
-                else:
-                    sim = 0.4 if abs(c[0]-o[0]) < 0.5 else 0.0
-                if sim > 0.15:
-                    user_similarities[ouid] = sim
+            if not shared:
+                continue
+            c, o = [user_direct_scores[p] for p in shared], [rts[p] for p in shared]
+            sim = self._pearson_similarity(c, o)
+            if sim > 0.15:
+                user_similarities[ouid] = sim
         return user_similarities
 
     async def _fetch_keras_normalized_scores(self, user_id, user_direct_scores, user_favs, formatted):
@@ -160,18 +164,7 @@ class RecommendationService:
             keras_norm = {pid: 2.5 + 2.5 * (sc-mi)/rng if rng > 0.01 else 3.5 for pid, sc in keras_raw.items()}
         return keras_norm
 
-    async def _sort_recommended(self, formatted: list, user_id: str, search_lat=None, search_lng=None):
-        # ── PASO 1: Cargar datos del usuario (Capa DB)
-        db = SessionLocal()
-        try:
-            user_direct_scores, user_direct_price, user_favs, other_users = self._fetch_user_db_features(db, user_id)
-        finally:
-            db.close()
-
-        # ── PASO 2: Obtener Info de Keras/Google
-        all_info = await self._fetch_missing_place_infos(user_direct_scores)
-
-        # ── PASO 3: Construir perfiles
+    def _build_user_profiles(self, user_direct_scores, user_direct_price, all_info):
         type_scores_accum = {}
         high_price_ratings = []
         for pid, score in user_direct_scores.items():
@@ -185,6 +178,63 @@ class RecommendationService:
         user_type_profile = {t: sum(sc)/len(sc) for t, sc in type_scores_accum.items()}
         avg_price_at_expensive = sum(high_price_ratings)/len(high_price_ratings) if high_price_ratings else 3.5
         is_price_sensitive = avg_price_at_expensive < 3.0
+        return user_type_profile, is_price_sensitive
+
+    def _calculate_restaurant_score(
+        self, r, user_direct_scores, user_type_profile, user_similarities,
+        other_users, keras_norm, search_lat, search_lng, is_price_sensitive, user_favs
+    ):
+        pid = r["id"]
+        r_types = set(r.get("types") or []) - GENERIC_TYPES
+        google_r, keras_s = r.get("rating") or 3.5, keras_norm.get(pid, 3.5)
+
+        if pid in user_direct_scores:
+            direct = user_direct_scores[pid]
+            return 0.80 * direct + 0.20 * google_r, f"direct({direct:.1f})"
+
+        signals, weights = [keras_s, google_r], [0.10, 0.25]
+        type_matches = [user_type_profile[t] for t in r_types if t in user_type_profile]
+        if type_matches:
+            t_avg = sum(type_matches) / len(type_matches)
+            if t_avg < 2.5:
+                t_avg *= 0.8
+            signals.append(t_avg)
+            weights.append(0.35)
+        
+        cf_p = [(sim, other_users[ouid][pid]) for ouid, sim in user_similarities.items() if pid in other_users.get(ouid, {})]
+        if cf_p:
+            signals.append(sum(s * sc for s, sc in cf_p) / sum(s for s, _ in cf_p))
+            weights.append(0.25)
+        
+        if search_lat and r.get("latitude"):
+            signals.append(self._dist_to_score(self._haversine(search_lat, search_lng, r["latitude"], r["longitude"])))
+            weights.append(0.05)
+
+        final = sum(s * (w / sum(weights)) for s, w in zip(signals, weights))
+        p_map_i = {"PRICE_LEVEL_FREE": 0, "PRICE_LEVEL_INEXPENSIVE": 1, "PRICE_LEVEL_MODERATE": 2, "PRICE_LEVEL_EXPENSIVE": 3, "PRICE_LEVEL_VERY_EXPENSIVE": 4}
+        p_int = p_map_i.get(r.get("price_level"), 2) if isinstance(r.get("price_level"), str) else (r.get("price_level") or 2)
+        if is_price_sensitive and p_int >= 3:
+            final *= 0.85
+        if pid in user_favs:
+            final = min(5.0, final + 0.25)
+        
+        return final, f"hybrid({len(type_matches)}types)"
+
+    async def _sort_recommended(self, formatted: list, user_id: str, search_lat=None, search_lng=None):
+        # ── PASO 1: Cargar datos del usuario (Capa DB)
+        db = SessionLocal()
+        try:
+            user_direct_scores, user_direct_price, user_favs, other_users = self._fetch_user_db_features(db, user_id)
+        finally:
+            db.close()
+
+        # ── PASO 2: Obtener Info de Keras/Google
+        all_info = await self._fetch_missing_place_infos(user_direct_scores)
+
+        # ── PASO 3: Construir perfiles
+        user_type_profile, is_price_sensitive = self._build_user_profiles(
+            user_direct_scores, user_direct_price, all_info
+        )
 
         # ── PASO 4: Collaborative Filtering
         user_similarities = self._compute_collaborative_filtering(user_direct_scores, other_users)
@@ -194,41 +244,10 @@ class RecommendationService:
 
         # ── PASO 6: Scoring Final
         for r in formatted:
-            pid = r["id"]
-            r_types = set(r.get("types") or []) - GENERIC_TYPES
-            google_r, keras_s = r.get("rating") or 3.5, keras_norm.get(pid, 3.5)
-
-            if pid in user_direct_scores:
-                direct = user_direct_scores[pid]
-                final, source = 0.80*direct + 0.20*google_r, f"direct({direct:.1f})"
-            else:
-                signals, weights = [keras_s, google_r], [0.10, 0.25]
-                type_matches = [user_type_profile[t] for t in r_types if t in user_type_profile]
-                if type_matches:
-                    t_avg = sum(type_matches)/len(type_matches)
-                    if t_avg < 2.5:
-                        t_avg *= 0.8
-                    signals.append(t_avg)
-                    weights.append(0.35)
-                
-                cf_p = [(sim, other_users[ouid][pid]) for ouid, sim in user_similarities.items() if pid in other_users.get(ouid, {})]
-                if cf_p:
-                    signals.append(sum(s*sc for s,sc in cf_p)/sum(s for s,_ in cf_p))
-                    weights.append(0.25)
-                
-                if search_lat and r.get("latitude"):
-                    signals.append(self._dist_to_score(self._haversine(search_lat, search_lng, r["latitude"], r["longitude"])))
-                    weights.append(0.05)
-
-                final = sum(s*(w/sum(weights)) for s,w in zip(signals, weights))
-                p_map_i = {"PRICE_LEVEL_FREE":0, "PRICE_LEVEL_INEXPENSIVE":1, "PRICE_LEVEL_MODERATE":2, "PRICE_LEVEL_EXPENSIVE":3, "PRICE_LEVEL_VERY_EXPENSIVE":4}
-                p_int = p_map_i.get(r.get("price_level"), 2) if isinstance(r.get("price_level"), str) else (r.get("price_level") or 2)
-                if is_price_sensitive and p_int >= 3:
-                    final *= 0.85
-                if pid in user_favs:
-                    final = min(5.0, final + 0.25)
-                source = f"hybrid({len(type_matches)}types)"
-
+            final, source = self._calculate_restaurant_score(
+                r, user_direct_scores, user_type_profile, user_similarities,
+                other_users, keras_norm, search_lat, search_lng, is_price_sensitive, user_favs
+            )
             r["hybrid_score"], r["score_source"] = round(final, 4), source
 
         formatted.sort(key=lambda x: x.get("hybrid_score", 0.0), reverse=True)

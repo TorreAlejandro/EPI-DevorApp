@@ -137,11 +137,23 @@ if $RUN_BACKEND; then
 
     step "Installing keras-api dependencies (pip)"
     cd "$ROOT/keras-api"
+    if [[ ! -d ".venv" && ! -d "venv" ]]; then
+        step "Creating virtual environment (.venv)..."
+        python3 -m venv .venv || python -m venv .venv || fail "Failed to create virtual environment"
+    fi
     PYTHON_CMD="python3"
-    if [[ -f "venv/bin/python" ]]; then
+    if [[ -f ".venv/bin/python" ]]; then
+        PYTHON_CMD="./.venv/bin/python"
+    elif [[ -f ".venv/Scripts/python" ]]; then
+        PYTHON_CMD="./.venv/Scripts/python"
+    elif [[ -f "venv/bin/python" ]]; then
         PYTHON_CMD="./venv/bin/python"
     elif [[ -f "venv/Scripts/python" ]]; then
         PYTHON_CMD="./venv/Scripts/python"
+    fi
+    # Verify Python version compatibility (TensorFlow 2.15 requires Python >= 3.9 and < 3.13)
+    if ! $PYTHON_CMD -c "import sys; exit(0 if (3, 9) <= sys.version_info < (3, 13) else 1)" &>/dev/null; then
+        fail "Incompatible Python version ($($PYTHON_CMD -c 'import sys; print(sys.version.split()[0])'))! TensorFlow requires Python >= 3.9 and < 3.13. Please configure Python 3.10/3.11/3.12."
     fi
     run "pip install" $PYTHON_CMD -m pip install -r requirements.txt
     ok "Keras API dependencies installed"
@@ -207,7 +219,11 @@ else
         step "Starting keras-api — FastAPI (http://localhost:8001)"
         cd "$ROOT/keras-api"
         PYTHON_CMD="python3"
-        if [[ -f "venv/bin/python" ]]; then
+        if [[ -f ".venv/bin/python" ]]; then
+            PYTHON_CMD="./.venv/bin/python"
+        elif [[ -f ".venv/Scripts/python" ]]; then
+            PYTHON_CMD="./.venv/Scripts/python"
+        elif [[ -f "venv/bin/python" ]]; then
             PYTHON_CMD="./venv/bin/python"
         elif [[ -f "venv/Scripts/python" ]]; then
             PYTHON_CMD="./venv/Scripts/python"
