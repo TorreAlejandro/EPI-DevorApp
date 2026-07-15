@@ -268,8 +268,32 @@ jobs:
       - name: Checkout main repository
         uses: actions/checkout@v4
 
-      - name: Create dummy Firebase Service Account file
-        run: echo '{}' > backend/firebase-service-account.json
+      - name: Create dummy Firebase credentials and .env configuration files
+        run: |
+          # Crear JSON simulado de Firebase
+          echo '{}' > backend/firebase-service-account.json
+
+          # Crear .env simulado para Backend
+          cat <<EOF > backend/.env
+          FIREBASE_PROJECT_ID=epi-devorapp
+          FIREBASE_API_KEY=dummy_firebase_key
+          GOOGLE_API_KEY=dummy_google_key
+          FIREBASE_SERVICE_ACCOUNT_PATH=firebase-service-account.json
+          SECRET_KEY=dummy_secret_key
+          DATABASE_URL=postgresql://postgres:password@db:5432/tfg_db
+          KERAS_API_URL=http://keras-api:8001/predict
+          KERAS_API_KEY=devorapp_6f8e2b9a1c4d5e0f7a3b8c9d0e1f2a3b4c5d6e7f8
+          GOOGLE_CLIENT_ID=dummy_google_client_id
+          EOF
+
+          # Crear .env simulado para Keras API
+          cat <<EOF > keras-api/.env
+          API_KEY_RECOMMENDER=devorapp_6f8e2b9a1c4d5e0f7a3b8c9d0e1f2a3b4c5d6e7f8
+          MODEL_PATH=./models/modelo_prod.h5
+          PORT=8001
+          DATABASE_URL=postgresql://postgres:password@db:5432/tfg_db
+          GOOGLE_API_KEY=dummy_google_key
+          EOF
 
       - name: Start DevorApp via Docker Compose
         run: |
