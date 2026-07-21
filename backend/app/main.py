@@ -18,6 +18,10 @@ _extra_origins = [o.strip() for o in os.getenv("EXTRA_ORIGINS", "").split(",") i
 _allowed_origins = [
     "https://localhost:5173",
     "https://127.0.0.1:5173",
+    "http://localhost:5173",
+    "http://localhost",
+    "https://localhost",
+    "capacitor://localhost",
     # Para desarrollo local sin TLS, añadir http://localhost:5173 en EXTRA_ORIGINS
 ] + _extra_origins
 
@@ -28,6 +32,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi import Request
+
+class DebugMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.method == "OPTIONS" or "/login" in request.url.path:
+            print(f"\n--- [DEBUG] NUEVA PETICION ---")
+            print(f"Método: {request.method}")
+            print(f"Ruta: {request.url.path}")
+            print("Cabeceras:")
+            for key, value in request.headers.items():
+                print(f"  {key}: {value}")
+            print("-----------------------------\n")
+        return await call_next(request)
+
+app.add_middleware(DebugMiddleware)
 
 # Registrar rutas
 app.include_router(auth_router.router)
