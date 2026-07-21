@@ -365,14 +365,27 @@ El análisis de calidad estática de código está delegado en **SonarCloud**.
 
 ## Descarga e Instalación de la Aplicación Móvil (APK)
 
-La aplicación móvil se empaqueta automáticamente y se distribuye en la Play Store o mediante los artefactos compilados del pipeline.
+La aplicación móvil se empaqueta automáticamente en cada ciclo de integración continua (CI/CD) de GitHub Actions.
 
-### Cómo instalar la APK firmada:
-1. Accede al apartado de **Actions** o **Releases** en el repositorio y descarga el artefacto de la APK firmada (`app-release.apk`).
-2. Transfiere el archivo `.apk` a tu dispositivo Android o descárgalo directamente desde el navegador de tu móvil.
-3. Abre el archivo descargado en tu teléfono.
-4. Si el sistema te lo solicita, habilita la opción de **"Permitir la instalación de aplicaciones de origen desconocido"** (o "Instalar aplicaciones desconocidas") para tu navegador o gestor de archivos.
-5. Sigue las instrucciones en pantalla para completar la instalación y abre **DevorApp**.
+### Cómo instalar la APK:
+1. **Descargar la APK**:
+   - **Para Releases oficiales**: Accede a la sección **Releases** en el repositorio y descarga el archivo `app-release.apk`.
+   - **Para desarrollo y pruebas**: Accede a la pestaña **Actions**, selecciona la última ejecución del pipeline de la rama `main` o `desarrollo`, y descarga el artefacto **`devorapp-release-apk`** (que contiene una versión autodebug firmada lista para instalar directamente en cualquier teléfono).
+2. **Transferir e instalar**: Transfiere el archivo `.apk` a tu dispositivo Android (o descárgalo directamente desde el navegador de tu móvil) y ábrelo. Habilita la opción de *"Permitir la instalación de aplicaciones de origen desconocido"* si el dispositivo lo solicita para completar la instalación.
+
+### Cómo conectar la APK a tu Backend Local (Ngrok / Wi-Fi)
+Dado que la aplicación móvil corre de forma nativa en tu teléfono, por defecto no puede acceder a `localhost`. Para conectarla al backend que se está ejecutando en tu ordenador de desarrollo:
+1. **Exponer el Backend local (Recomendado)**:
+   - Levanta tu backend local.
+   - Ejecuta una herramienta gratuita como **Ngrok** para abrir un túnel seguro al puerto del backend (ej: `ngrok http 8000`). Esto te proporcionará una URL pública temporal (ej: `https://xxxx.ngrok-free.app`).
+2. **Configurar la app en el móvil**:
+   - Abre la aplicación **DevorApp** en tu teléfono.
+   - En la pantalla de **Inicio de Sesión**, pulsa sobre el **icono de engranaje** (Ajustes de Servidor) situado en la esquina superior derecha de la barra de navegación.
+    - Escribe o pega la dirección URL de tu API local:
+      * **Si usas Ngrok**: ej. `https://xxxx.ngrok-free.app/api`
+      * **Si usas Wi-Fi local**: ej. `http://<IP_DE_TU_PC>:8000/api` (debes reemplazar `<IP_DE_TU_PC>` por la dirección IP local real de tu ordenador, por ejemplo `192.168.1.50`. Puedes averiguar tu IP ejecutando `ipconfig` en la terminal de Windows o `ip a` / `ifconfig` en macOS o Linux).
+    - Haz clic en **Guardar y Conectar**. La app se reiniciará sola y ya estará conectada en tiempo real a tu backend local.
+   - Puedes pulsar en **Restablecer por defecto** cuando desees restaurar la dirección original.
 
 ---
 
