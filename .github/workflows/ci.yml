@@ -55,14 +55,14 @@ jobs:
           pytest test_main.py -v --cov=. --cov-report=xml:coverage.xml
 
       - name: Upload Backend Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-coverage
           path: backend/coverage.xml
 
       - name: Upload Keras Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: keras-coverage
@@ -99,7 +99,7 @@ jobs:
           npm run test -- --coverage
 
       - name: Upload Frontend Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: frontend-coverage
@@ -388,7 +388,7 @@ jobs:
           fi
 
       - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: devorapp-release-apk
           path: frontend/android/app/build/outputs/apk/release/app-release.apk
