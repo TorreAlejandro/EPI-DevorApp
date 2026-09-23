@@ -1,4 +1,4 @@
-fastapi[standard]>=0.110.0
+fastapi[standard]>=0.139.2
 tensorflow-cpu>=2.15.0
 python-dotenv>=1.0.0
 pandas>=2.2.0
